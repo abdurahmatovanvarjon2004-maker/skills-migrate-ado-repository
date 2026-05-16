@@ -57,7 +57,7 @@ Now let's configure [Azure DevOps](https://dev.azure.com/) credentials so we can
 
     Click **Show all scopes** at the bottom of this view
 
-    <img width="600" alt="Show all scopes link at the bottom of the token scopes view" src="../images/show-all-scopes-link.png" />
+    <img width="600" alt="Show all scopes link at the bottom of the token scopes view" src="https://github.com/abdurahmatovanvarjon2004-maker/skills-migrate-ado-repository/blob/main/.github/images/show-all-scopes-link.png?raw=true" />
 
     </details>
 
