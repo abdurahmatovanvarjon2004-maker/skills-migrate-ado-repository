@@ -53,11 +53,32 @@ create table if not exists public.tickets (
   status       text not null default 'waiting',  -- waiting|serving|done|cancelled|no_show
   window_no    int,
   priority     int  default 0,         -- 0=oddiy, 1=imtiyozli
+  access_token uuid default gen_random_uuid(),  -- mijoz o'z taloniga shu orqali kiradi (login'siz)
   created_at   timestamptz default now(),
   called_at    timestamptz,
   done_at      timestamptz
 );
 create index if not exists tickets_branch_status_idx on public.tickets(branch_id, status, priority desc, created_at);
+-- Eski (access_token'siz) o'rnatilgan bazalar uchun xavfsiz migratsiya:
+alter table public.tickets add column if not exists access_token uuid default gen_random_uuid();
+update public.tickets set access_token = gen_random_uuid() where access_token is null;
+
+-- ---------- 5. XODIMLAR (auth.uid() -> filial bog'lanishi) ----------
+-- Qatorlar Supabase dashboard/SQL orqali qo'lda kiritiladi: xodim
+-- Authentication -> Users'da yaratilgach, uning user_id'si shu yerga
+-- tegishli branch_id bilan qo'shiladi.
+create table if not exists public.staff (
+  user_id      uuid primary key references auth.users(id) on delete cascade,
+  branch_id    uuid not null references public.branches(id) on delete cascade,
+  created_at   timestamptz default now()
+);
+
+-- Joriy (auth.uid() bo'yicha) tizimga kirgan xodimning filialini qaytaradi,
+-- xodim bo'lmasa yoki login qilinmagan bo'lsa null.
+create or replace function public.current_staff_branch()
+returns uuid language sql stable security definer set search_path = public as $$
+  select branch_id from public.staff where user_id = auth.uid()
+$$;
 
 -- ============================================================
 --  RPC FUNKSIYALAR
@@ -78,10 +99,15 @@ begin
   return v_ticket;
 end $$;
 
+-- Quyidagi call_next/call_ticket/finish_ticket/noshow_ticket faqat shu
+-- filialga biriktirilgan (staff jadvalidagi) login qilgan xodim uchun
+-- ishlaydi — SECURITY DEFINER bo'lgani uchun RLS'ni chetlab o'tadi, shu
+-- sabab tekshiruv funksiya ICHIDA amalga oshiriladi.
 create or replace function public.call_next(p_branch uuid, p_window int)
 returns public.tickets language plpgsql security definer set search_path = public as $$
 declare v_ticket tickets;
 begin
+  if p_branch is distinct from current_staff_branch() then raise exception 'not_authorized'; end if;
   update tickets set status='done', done_at=now()
     where branch_id=p_branch and status='serving' and window_no=p_window;
   select * into v_ticket from tickets
@@ -95,29 +121,77 @@ end $$;
 
 create or replace function public.call_ticket(p_ticket uuid, p_window int)
 returns public.tickets language plpgsql security definer set search_path = public as $$
-declare v_ticket tickets;
+declare v_ticket tickets; v_branch uuid;
 begin
+  select branch_id into v_branch from tickets where id=p_ticket;
+  if v_branch is null then raise exception 'ticket_not_found'; end if;
+  if v_branch is distinct from current_staff_branch() then raise exception 'not_authorized'; end if;
   update tickets set status='done', done_at=now()
-    where branch_id=(select branch_id from tickets where id=p_ticket)
-      and status='serving' and window_no=p_window;
+    where branch_id=v_branch and status='serving' and window_no=p_window;
   update tickets set status='serving', window_no=p_window, called_at=now()
     where id=p_ticket returning * into v_ticket;
   return v_ticket;
 end $$;
 
 create or replace function public.finish_ticket(p_ticket uuid)
-returns void language sql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = public as $$
+declare v_branch uuid;
+begin
+  select branch_id into v_branch from tickets where id=p_ticket;
+  if v_branch is null or v_branch is distinct from current_staff_branch() then raise exception 'not_authorized'; end if;
   update tickets set status='done', done_at=now() where id=p_ticket;
-$$;
+end $$;
 
-create or replace function public.cancel_ticket(p_ticket uuid)
-returns void language sql security definer set search_path = public as $$
+-- cancel_ticket ikkala tomon uchun ham ishlaydi: filial xodimi (o'z
+-- filiali talonini) YOKI mijozning o'zi (p_token — o'z access_token'i
+-- bilan, login qilmasdan) bekor qila oladi.
+-- Eski bir-argumentli (p_token'siz, tekshiruvsiz) versiyani olib
+-- tashlaymiz — aks holda "create or replace" uni almashtirmay, yonma-yon
+-- ikkinchi (himoyasiz) overload sifatida qoldirib ketardi.
+drop function if exists public.cancel_ticket(uuid);
+create or replace function public.cancel_ticket(p_ticket uuid, p_token uuid default null)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_branch uuid; v_token uuid;
+begin
+  select branch_id, access_token into v_branch, v_token from tickets where id=p_ticket;
+  if v_branch is null then raise exception 'ticket_not_found'; end if;
+  if v_branch is distinct from current_staff_branch()
+     and (p_token is null or p_token is distinct from v_token) then
+    raise exception 'not_authorized';
+  end if;
   update tickets set status='cancelled' where id=p_ticket and status in ('waiting');
-$$;
+end $$;
 
 create or replace function public.noshow_ticket(p_ticket uuid)
-returns void language sql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = public as $$
+declare v_branch uuid;
+begin
+  select branch_id into v_branch from tickets where id=p_ticket;
+  if v_branch is null or v_branch is distinct from current_staff_branch() then raise exception 'not_authorized'; end if;
   update tickets set status='no_show', done_at=now() where id=p_ticket;
+end $$;
+
+-- ---------- Ommaviy o'qish (login talab qilmaydi, PII'siz) ----------
+-- TV-tablo va mijozning "oldimda nechta kishi" ko'rinishi shundan
+-- foydalanadi — ism (name) MAYDONI QAYTARILMAYDI.
+create or replace function public.get_queue_public(p_branch uuid)
+returns table(id uuid, tag text, status text, window_no int, priority int, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select id, tag, status, window_no, priority, created_at
+  from public.tickets
+  where branch_id = p_branch and status in ('waiting','serving')
+  order by priority desc, created_at asc
+$$;
+
+-- Mijoz o'z taloniga (ism bilan — bu o'ziniki) login qilmasdan, faqat
+-- olgan access_token'i orqali kira oladi. Boshqa talonlarni ko'ra olmaydi.
+-- "setof" — token mos kelmasa NOL qator qaytadi (bitta NULL to'lgan
+-- qator emas, aks holda mijoz tarafda "talon topildi" deb noto'g'ri
+-- talqin qilinishi mumkin edi).
+create or replace function public.get_ticket_by_token(p_token uuid)
+returns setof public.tickets
+language sql stable security definer set search_path = public as $$
+  select * from public.tickets where access_token = p_token
 $$;
 
 -- ============================================================
@@ -127,10 +201,62 @@ alter table public.branches enable row level security;
 alter table public.services enable row level security;
 alter table public.windows  enable row level security;
 alter table public.tickets  enable row level security;
+alter table public.staff    enable row level security;
+
+-- branches/services/windows'da shaxsiy ma'lumot yo'q (filial nomi,
+-- xizmat nomi, oyna raqami) — ommaviy o'qish xavfsiz, o'zgarishsiz qoladi.
+drop policy if exists "read branches" on public.branches;
+drop policy if exists "read services" on public.services;
+drop policy if exists "read windows"  on public.windows;
 create policy "read branches" on public.branches for select using (true);
 create policy "read services" on public.services for select using (true);
 create policy "read windows"  on public.windows  for select using (true);
-create policy "read tickets"  on public.tickets  for select using (true);
+
+-- Xodim faqat o'zining staff qatorini ko'radi (qaysi filialga tegishli
+-- ekanini aniqlash uchun).
+drop policy if exists "staff read own row" on public.staff;
+create policy "staff read own row" on public.staff for select
+  using (user_id = auth.uid());
+
+-- ESKI "read tickets" using(true) siyosati o'chirildi — u BARCHA
+-- filiallarning BARCHA talonlarini, MIJOZ ISMI bilan birga, hammaga
+-- ochiq qilardi. O'rniga: faqat login qilgan xodim, faqat O'Z filiali
+-- talonlarini to'g'ridan-to'g'ri jadvaldan o'qiy oladi. Anon/mijoz uchun
+-- to'g'ridan-to'g'ri SELECT siyosati YO'Q — ular yuqoridagi
+-- get_queue_public() / get_ticket_by_token() RPC'lari orqali, faqat
+-- kerakli (PII'siz yoki o'ziniki) ma'lumotni oladi.
+drop policy if exists "read tickets" on public.tickets;
+drop policy if exists "staff read own branch tickets" on public.tickets;
+create policy "staff read own branch tickets" on public.tickets for select
+  to authenticated
+  using (branch_id = current_staff_branch());
+
+-- Mutatsion RPC'lar SECURITY DEFINER bo'lgani uchun RLS'dan mustaqil
+-- ishlaydi (tekshiruv funksiya ichida) — shunga qaramay, qo'shimcha
+-- himoya sifatida EXECUTE huquqini ham rollarga aniq taqsimlaymiz.
+-- Avval hammasini tozalaymiz (Supabase loyihasi standart qanday
+-- sozlangan bo'lishidan qat'iy nazar natija bashorat qilinadigan
+-- bo'lishi uchun), so'ng faqat kerakli rolga qaytarib beramiz.
+revoke execute on function public.call_next(uuid, int)         from public, anon, authenticated;
+revoke execute on function public.call_ticket(uuid, int)       from public, anon, authenticated;
+revoke execute on function public.finish_ticket(uuid)          from public, anon, authenticated;
+revoke execute on function public.noshow_ticket(uuid)          from public, anon, authenticated;
+revoke execute on function public.take_ticket(uuid, text, int) from public, anon, authenticated;
+revoke execute on function public.cancel_ticket(uuid, uuid)    from public, anon, authenticated;
+revoke execute on function public.get_queue_public(uuid)       from public, anon, authenticated;
+revoke execute on function public.get_ticket_by_token(uuid)    from public, anon, authenticated;
+
+-- Faqat login qilgan (o'z filialiga tegishli) xodim uchun:
+grant execute on function public.call_next(uuid, int)   to authenticated;
+grant execute on function public.call_ticket(uuid, int) to authenticated;
+grant execute on function public.finish_ticket(uuid)    to authenticated;
+grant execute on function public.noshow_ticket(uuid)    to authenticated;
+
+-- Login talab qilmaydigan (mijoz, TV-tablo) amallar:
+grant execute on function public.take_ticket(uuid, text, int) to anon, authenticated;
+grant execute on function public.cancel_ticket(uuid, uuid)     to anon, authenticated;
+grant execute on function public.get_queue_public(uuid)        to anon, authenticated;
+grant execute on function public.get_ticket_by_token(uuid)     to anon, authenticated;
 
 -- ============================================================
 --  REALTIME
