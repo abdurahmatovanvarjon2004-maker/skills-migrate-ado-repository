@@ -80,13 +80,51 @@ returns uuid language sql stable security definer set search_path = public as $$
   select branch_id from public.staff where user_id = auth.uid()
 $$;
 
+-- ---------- take_ticket flood himoyasi ----------
+-- So'rov manbasi (IP) bo'yicha oddiy throttling logi. Faqat talon
+-- yaratilganda yoziladi, shu sabab jadval kichik bo'lib qoladi.
+create table if not exists public.take_ticket_log (
+  key        text not null,
+  created_at timestamptz default now()
+);
+create index if not exists take_ticket_log_key_created_idx on public.take_ticket_log(key, created_at);
+-- RLS yoqilgan, lekin SIYOSAT YO'Q — hech kim (anon/authenticated) shu
+-- jadvalni to'g'ridan-to'g'ri o'qiy/yoza olmaydi (aks holda o'z IP
+-- qatorlarini o'chirib, throttling'ni chetlab o'tishi mumkin edi).
+-- Faqat take_ticket() (SECURITY DEFINER, jadval egasi nomidan RLS'ni
+-- chetlab o'tadi) yoza/o'qiy oladi.
+alter table public.take_ticket_log enable row level security;
+
 -- ============================================================
 --  RPC FUNKSIYALAR
 -- ============================================================
 create or replace function public.take_ticket(p_service uuid, p_name text default '', p_priority int default 0)
 returns public.tickets language plpgsql security definer set search_path = public as $$
-declare v_service services; v_num int; v_ticket tickets;
+declare
+  v_service services; v_num int; v_ticket tickets;
+  v_key text; v_recent int;
+  c_limit constant int := 5;               -- 1 daqiqada shu manbadan ruxsat etilgan eng ko'p talon
+  c_window constant interval := interval '1 minute';
 begin
+  -- IP manzilini PostgREST so'rov header'idan olamiz (Supabase har bir
+  -- so'rovda shuni uzatadi). Header topilmasa (masalan SQL Editor'dan
+  -- to'g'ridan-to'g'ri chaqirilganda) 'unknown'ga tushamiz — funksiya
+  -- buzilmasligi uchun.
+  begin
+    v_key := nullif(trim(split_part(
+      current_setting('request.headers', true)::json ->> 'x-forwarded-for', ',', 1)), '');
+  exception when others then
+    v_key := null;
+  end;
+  v_key := coalesce(v_key, 'unknown');
+
+  select count(*) into v_recent from take_ticket_log
+    where key = v_key and created_at > now() - c_window;
+  if v_recent >= c_limit then
+    raise exception 'rate_limited';
+  end if;
+  insert into take_ticket_log(key) values (v_key);
+
   select * into v_service from services where id = p_service and active for update;
   if not found then raise exception 'service_not_found'; end if;
   v_num := v_service.counter + 1;
