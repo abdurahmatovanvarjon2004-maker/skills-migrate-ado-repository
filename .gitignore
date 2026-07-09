@@ -23,8 +23,9 @@
 # Logs and databases #
 ######################
 *.log
-*.sql
 *.sqlite
+# Ilova sxemasi qasddan saqlanadi: !db/schema.sql
+!db/*.sql
 
 # OS generated files #
 ######################
@@ -55,4 +56,12 @@ crash.*.log
 
 # Ignore Terraform lock file
 .terraform.lock.hcl
+
+# Navbatsiz — maxfiy qiymatlar va bog'liqliklar #
+##################################################
+.env
+.env.*
+!.env.example
+node_modules/
+.netlify/
 

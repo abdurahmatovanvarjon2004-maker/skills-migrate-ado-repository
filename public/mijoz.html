@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Navbatsiz — navbat olish</title>
+<meta name="theme-color" content="#08181B">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23F7C948'/%3E%3Cstop offset='.55' stop-color='%23F5A83B'/%3E%3Cstop offset='1' stop-color='%23E58E2F'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M17 16a6 6 0 016-6h18a6 6 0 016 6v32a6 6 0 01-6 6H23a6 6 0 01-6-6V16zm0 10.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zm30 0a5.5 5.5 0 100 11 5.5 5.5 0 000-11z'/%3E%3Cpath stroke='%2304241D' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round' d='M26 23l8.5 9-8.5 9M36 23l8.5 9-8.5 9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08181B;--card:#0E2429;--line:rgba(183,214,203,.12);--line-2:rgba(183,214,203,.20);
+  --ink:#EDF5F1;--muted:#8FA8A0;--mint:#37D9A0;--cyan:#F5B63F;--violet:#177E76;--amber:#F5B63F;
+  --grad:linear-gradient(115deg,#F7C948 0%,#F5A83B 55%,#E58E2F 100%);
+  --disp:'Unbounded',ui-sans-serif,system-ui,sans-serif;--body:'Golos Text',ui-sans-serif,system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);color:var(--ink);min-height:100vh;font-size:16px;
+  background:
+   radial-gradient(600px 420px at 88% -8%, rgba(34,211,238,.13), transparent 62%),
+   radial-gradient(600px 480px at -10% 108%, rgba(139,124,255,.12), transparent 60%),var(--bg);
+  display:flex;flex-direction:column;align-items:center;padding:22px 18px calc(28px + env(safe-area-inset-bottom))}
+button{font-family:inherit;cursor:pointer}
+::selection{background:rgba(52,245,197,.25)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono);letter-spacing:.01em}
+:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.shell{width:100%;max-width:440px;display:flex;flex-direction:column;gap:16px}
+
+/* header */
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:18px}
+.brand .mk{width:32px;height:32px;border-radius:9px;background:var(--grad);display:grid;place-items:center}
+.brand .mk svg{width:18px;height:18px}
+.place{font-size:12.5px;color:var(--muted);font-weight:600;text-align:right;line-height:1.3}
+.place b{color:var(--ink);display:block}
+
+/* card */
+.card{border-radius:22px;padding:22px;background:linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(155deg,rgba(52,245,197,.3),rgba(148,193,255,.07) 45%,rgba(139,124,255,.26)) border-box;
+  border:1px solid transparent;box-shadow:0 24px 56px rgba(0,0,0,.42)}
+.title{font-family:var(--disp);font-weight:700;font-size:20px;margin-bottom:4px}
+.desc{color:var(--muted);font-size:14px;margin-bottom:18px}
+.view{display:none}.view.on{display:block}
+
+/* service picker */
+.label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:0 0 9px}
+.svc-grid{display:grid;gap:10px;margin-bottom:18px}
+.svc{display:flex;align-items:center;gap:14px;padding:15px;border-radius:16px;text-align:left;width:100%;
+  background:rgba(255,255,255,.03);border:1.5px solid var(--line-2);color:var(--ink);transition:.15s}
+.svc:hover{background:rgba(255,255,255,.06)}
+.svc.on{border-color:var(--mint);background:rgba(52,245,197,.08)}
+.svc-ic{width:44px;height:44px;border-radius:12px;background:rgba(52,245,197,.1);border:1px solid rgba(52,245,197,.25);display:grid;place-items:center;flex:0 0 44px}
+.svc-ic svg{width:22px;height:22px;stroke:var(--mint)}
+.svc-t b{display:block;font-weight:700;font-size:15.5px}
+.svc-t span{font-size:12.5px;color:var(--muted)}
+.svc .rad{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--line-2);flex:0 0 22px;display:grid;place-items:center}
+.svc.on .rad{border-color:var(--mint)}
+.svc.on .rad::after{content:"";width:11px;height:11px;border-radius:50%;background:var(--grad)}
+
+input.name{width:100%;background:rgba(255,255,255,.04);border:1.5px solid var(--line-2);border-radius:14px;
+  padding:14px 15px;color:var(--ink);font-family:inherit;font-size:15px;outline:none;margin-bottom:16px}
+input.name:focus{border-color:var(--mint)}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;font-weight:700;font-size:16px;
+  padding:16px;border-radius:15px;border:1px solid transparent;transition:transform .14s,box-shadow .14s,background .14s}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn svg{width:19px;height:19px}
+.btn-grad{background:var(--grad);color:#04241D;box-shadow:0 12px 32px rgba(34,211,238,.28)}
+.btn-grad:hover{box-shadow:0 16px 42px rgba(52,245,197,.42)}
+.btn-glass{background:rgba(255,255,255,.05);border-color:var(--line-2);color:var(--ink)}
+.btn-glass:hover{background:rgba(255,255,255,.1)}
+.btn-ghost{background:none;color:var(--muted);border-color:var(--line-2)}
+.btn-ghost:hover{color:var(--ink)}
+
+/* ticket screen */
+.ticket-top{text-align:center;margin-bottom:6px}
+.status-pill{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+  background:rgba(52,245,197,.1);border:1px solid rgba(52,245,197,.3);color:var(--mint);border-radius:999px;padding:7px 15px;margin-bottom:16px}
+.status-pill i{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulse 1.7s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.big-num{font-family:var(--mono);font-weight:600;font-size:72px;line-height:1;letter-spacing:.01em;text-align:center;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.svc-name{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
+.divider{height:1px;background:var(--line);margin:20px 0}
+
+.pos-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.pos-box{text-align:center;flex:1}
+.pos-box b{display:block;font-family:var(--mono);font-weight:600;font-size:29px}
+.pos-box span{font-size:12px;color:var(--muted)}
+.pos-sep{width:1px;height:36px;background:var(--line)}
+.prog{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:8px}
+.prog i{display:block;height:100%;border-radius:99px;background:var(--grad);width:10%;transition:width .5s ease}
+.now-serving{text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px}
+.now-serving b{color:var(--ink);font-family:var(--mono);font-weight:600}
+
+/* called highlight */
+.called-card{border-color:rgba(52,245,197,.5)!important;
+  background:linear-gradient(var(--card),var(--card)) padding-box,var(--grad) border-box!important;
+  animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 24px 70px rgba(52,245,197,.3)}}
+.called-banner{display:flex;align-items:center;gap:12px;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35);
+  border-radius:16px;padding:14px;margin-bottom:18px}
+.called-banner .ic{width:40px;height:40px;border-radius:11px;background:var(--grad);display:grid;place-items:center;flex:0 0 40px}
+.called-banner .ic svg{width:20px;height:20px;stroke:#04241D}
+.called-banner b{display:block;font-size:14.5px}
+.called-banner span{font-size:12.5px;color:var(--muted)}
+.qr-box{background:#EDF5F1;border-radius:16px;padding:16px;width:150px;height:150px;margin:6px auto 14px}
+.qr-box svg{width:100%;height:100%}
+.qr-cap{text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:16px}
+
+.foot-note{text-align:center;color:var(--muted);font-size:12px;line-height:1.6;padding:0 6px}
+.foot-note a{color:var(--mint);text-decoration:none}
+.mini{font-size:11.5px;color:var(--muted);text-align:center;margin-top:2px;opacity:.8}
+.branch-sel{background:rgba(255,255,255,.06);border:1px solid var(--line-2);border-radius:9px;color:var(--ink);font-family:inherit;font-weight:700;font-size:11.5px;padding:5px 8px;outline:none;cursor:pointer;margin-top:6px}
+.branch-sel option{background:#0E2429}
+.svc-badge{width:44px;height:44px;border-radius:12px;background:var(--grad);color:#04241D;display:grid;place-items:center;flex:0 0 44px;font-family:var(--disp);font-weight:700;font-size:20px}
+.tw-lab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:center;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="head">
+    <div class="brand">
+      <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
+      Navbat<span class="grad-text">siz</span>
+    </div>
+    <div class="place"><b id="plName">Shifo klinikasi</b><span id="plWhere">1-qavat · qabulxona</span><br><select id="branchSel" class="branch-sel" title="Muassasa"></select></div>
+  </div>
+
+  <!-- ====== VIEW 1: navbat olish ====== -->
+  <div class="view on" id="pick">
+    <div class="card">
+      <div class="title">Navbat oling</div>
+      <div class="desc">Jonli navbatda turmang — raqamli navbatingizni telefondan oling.</div>
+
+      <p class="label">Qaysi xizmat kerak?</p>
+      <div class="svc-grid" id="svcGrid"></div>
+
+      <p class="label">Ismingiz (ixtiyoriy)</p>
+      <input class="name" id="cName" placeholder="Chaqirilganda ekranda ko‘rinadi">
+
+      <button class="btn btn-grad" id="takeBtn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Navbat olish
+      </button>
+    </div>
+    <p class="foot-note">Navbatingiz yaqinlashganda ushbu sahifa o‘zi yangilanadi. Sahifani yopmang yoki xatcho‘pga qo‘shing.</p>
+  </div>
+
+  <!-- ====== VIEW 2: mening navbatim ====== -->
+  <div class="view" id="mine">
+    <div class="card" id="mineCard">
+      <div id="calledBanner" style="display:none" class="called-banner">
+        <span class="ic"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1"/></svg></span>
+        <span><b>Navbatingiz keldi!</b><span id="calledWin">Kassaga o‘ting</span></span>
+      </div>
+
+      <div class="ticket-top">
+        <span class="status-pill" id="statusPill"><i></i>Navbatda</span>
+      </div>
+      <div class="tw-lab" id="twLab">Sizning navbatingiz</div>
+      <div class="big-num" id="myNum">A-000</div>
+      <div class="svc-name" id="mySvc">Terapevt qabuli</div>
+
+      <!-- kutish holati -->
+      <div id="waitingBlock">
+        <div class="divider"></div>
+        <div class="pos-row">
+          <div class="pos-box"><b class="num" id="posAhead">0</b><span>oldingizda</span></div>
+          <div class="pos-sep"></div>
+          <div class="pos-box"><b class="num" id="posWait">0</b><span>~ daqiqa</span></div>
+        </div>
+        <div class="prog"><i id="posProg"></i></div>
+        <div class="now-serving">Hozir xizmatda: <b id="nowServing">—</b></div>
+      </div>
+
+      <!-- chaqirilgan holati -->
+      <div id="calledBlock" style="display:none">
+        <div class="divider"></div>
+        <div class="qr-box"><svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/><rect x="26" y="40" width="10" height="2"/></svg></div>
+        <p class="qr-cap">Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating</p>
+      </div>
+
+      <div class="divider"></div>
+      <button class="btn btn-ghost" id="cancelBtn">Navbatni bekor qilish</button>
+    </div>
+    <p class="mini" id="ticketTime"></p>
+  </div>
+
+  <!-- ====== VIEW 3: yakunlandi ====== -->
+  <div class="view" id="done">
+    <div class="card" style="text-align:center">
+      <div class="qr-box" style="background:rgba(52,245,197,.1);display:grid;place-items:center;border:1px solid rgba(52,245,197,.3)">
+        <svg width="60" height="60" fill="none" viewBox="0 0 24 24" stroke="#37D9A0" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div class="title">Xizmat yakunlandi</div>
+      <div class="desc" style="margin-bottom:20px">Bizni tanlaganingiz uchun rahmat! Sog‘ bo‘ling.</div>
+      <button class="btn btn-grad" id="againBtn">Yangi navbat olish</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var INDUSTRIES={
+    clinic:{name:'Shifo klinikasi',place:'1-qavat · qabulxona',tw:'Sizning navbatingiz',ww:'Kassa',
+      svc:[{c:'A',n:'Terapevt qabuli',h:'Shifokor ko\u2018rigi'},{c:'B',n:'Laboratoriya',h:'Qon, tahlillar'},{c:'C',n:'Kassa / to\u2018lov',h:'To\u2018lov'}]},
+    bank:{name:'Milliy bank \u2014 Chilonzor',place:'Operatsion zal',tw:'Sizning taloningiz',ww:'Deraza',
+      svc:[{c:'A',n:'Omonat / karta',h:'Hisob, karta'},{c:'B',n:'Kredit',h:'Kredit, to\u2018lov'},{c:'C',n:'Valyuta',h:'Ayirboshlash'},{c:'D',n:'Yuridik shaxslar',h:'Biznes mijozlar'}]},
+    gov:{name:'Davlat xizmatlari markazi',place:'2-qavat',tw:'Sizning navbatingiz',ww:'Stol',
+      svc:[{c:'A',n:'Pasport / ID',h:'Hujjatlar'},{c:'B',n:'Kadastr',h:'Ko\u2018chmas mulk'},{c:'C',n:'FHDYo (nikoh)',h:'Fuqarolik holati'},{c:'D',n:'Notarius',h:'Tasdiqlash'}]},
+    salon:{name:'Style barbershop',place:'Asosiy zal',tw:'Sizning navbatingiz',ww:'Usta',
+      svc:[{c:'A',n:'Soch olish',h:'Erkaklar'},{c:'B',n:'Soqol / parvarish',h:'Beard care'},{c:'C',n:'Bolalar',h:'Bolalar sartaroshligi'}]},
+    auto:{name:'AutoService Pro',place:'Servis hududi',tw:'Sizning navbatingiz',ww:'Post',
+      svc:[{c:'A',n:'Moy almashtirish',h:'Xizmat'},{c:'B',n:'Diagnostika',h:'Tekshiruv'},{c:'C',n:'Yuvish',h:'Tozalash'}]}
+  };
+  var ORDER=['clinic','bank','gov','salon','auto'];
+  var BKEY='navbatsiz_branch';
+  function pickBranch(){
+    try{ var u=new URLSearchParams(location.search).get('b'); if(u&&INDUSTRIES[u])return u; }catch(e){}
+    try{ var b=localStorage.getItem(BKEY); if(b&&INDUSTRIES[b])return b; }catch(e){}
+    return 'clinic';
+  }
+  var branch=pickBranch();
+  function cfg(){return INDUSTRIES[branch];}
+  var KEY,MYKEY,svcName;
+  function setBranchVars(){ KEY='navbatsiz_q_'+branch; MYKEY='navbatsiz_my_'+branch; svcName={}; cfg().svc.forEach(function(s){svcName[s.c]=s.n;}); }
+  setBranchVars();
+  var $=function(id){return document.getElementById(id)};
+
+  function loadState(){ try{return JSON.parse(localStorage.getItem(KEY))||blank()}catch(e){return blank()} }
+  function blank(){ return {counters:{A:0,B:0,C:0},waiting:[],now:null,served:0,win:1}; }
+  function saveState(s){ try{localStorage.setItem(KEY,JSON.stringify(s));localStorage.setItem(KEY+'_ping',Date.now()+'');}catch(e){} }
+  function loadMy(){ try{return JSON.parse(localStorage.getItem(MYKEY))}catch(e){return null} }
+  function saveMy(t){ try{ t?localStorage.setItem(MYKEY,JSON.stringify(t)):localStorage.removeItem(MYKEY);}catch(e){} }
+
+  var picked=cfg().svc[0].c;
+  function renderServices(){
+    var grid=document.getElementById('svcGrid'); grid.innerHTML='';
+    picked=cfg().svc[0].c;
+    cfg().svc.forEach(function(s,i){
+      var b=document.createElement('button');
+      b.className='svc'+(i===0?' on':''); b.type='button'; b.dataset.svc=s.c;
+      b.innerHTML='<span class="svc-badge">'+s.c+'</span><span class="svc-t"><b>'+s.n+'</b><span>'+(s.h||'')+'</span></span><span class="rad"></span>';
+      b.onclick=function(){ grid.querySelectorAll('.svc').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); picked=s.c; };
+      grid.appendChild(b);
+    });
+  }
+  function fillBranchSel(){
+    var sel=document.getElementById('branchSel');
+    if(!sel.options.length){ ORDER.forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=INDUSTRIES[k].name; sel.appendChild(o); }); }
+    sel.value=branch;
+    sel.onchange=function(){ applyBranch(sel.value); };
+  }
+  function setPlace(){
+    document.getElementById('plName').textContent=cfg().name;
+    document.getElementById('plWhere').textContent=cfg().place;
+    document.getElementById('twLab').textContent=cfg().tw;
+  }
+  function applyBranch(nb){
+    if(!INDUSTRIES[nb]) return;
+    branch=nb; try{localStorage.setItem(BKEY,nb);}catch(e){}
+    setBranchVars(); fillBranchSel(); setPlace(); renderServices(); render();
+  }
+
+  function show(view){ document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')}); $(view).classList.add('on'); }
+
+  // ---- navbat olish ----
+  $('takeBtn').onclick=function(){
+    var s=loadState();
+    s.counters[picked]=(s.counters[picked]||0)+1;
+    var t={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7),
+            tag:picked+'-'+String(s.counters[picked]).padStart(3,'0'),
+            svc:picked, name:($('cName').value.trim()||''), t:Date.now() };
+    s.waiting.push(t);
+    saveState(s); saveMy(t);
+    render();
+  };
+
+  $('cancelBtn').onclick=function(){
+    var my=loadMy(); if(!my) { saveMy(null); show('pick'); return; }
+    var s=loadState();
+    s.waiting=s.waiting.filter(function(x){return x.tag!==my.tag;});
+    if(s.now && s.now.tag===my.tag) s.now=null;
+    saveState(s); saveMy(null); show('pick');
+  };
+  $('againBtn').onclick=function(){ saveMy(null); show('pick'); };
+
+  // ---- render ----
+  var wasCalled=false;
+  function render(){
+    var my=loadMy();
+    if(!my){ show('pick'); return; }
+    var s=loadState();
+
+    // holatni aniqlash
+    var idx=-1; for(var i=0;i<s.waiting.length;i++){ if(s.waiting[i].tag===my.tag){ idx=i; break; } }
+    var isNow = s.now && s.now.tag===my.tag;
+    var inQueue = idx>=0;
+
+    if(!isNow && !inQueue){ // chaqirilib bo'lingan / xizmat tugagan
+      show('done'); saveMy(null); return;
+    }
+
+    show('mine');
+    $('myNum').textContent=my.tag;
+    $('mySvc').textContent=svcName[my.svc]||'';
+    $('ticketTime').textContent='Talon olindi: '+new Date(my.t).toLocaleTimeString('uz',{hour:'2-digit',minute:'2-digit'});
+
+    if(isNow){
+      // CHAQIRILDI
+      $('mineCard').classList.add('called-card');
+      $('calledBanner').style.display='flex';
+      $('calledWin').textContent=cfg().ww+' '+(s.now.win||1)+' ga o\u2018ting';
+      $('waitingBlock').style.display='none';
+      $('calledBlock').style.display='block';
+      var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>Sizni chaqirishmoqda';
+      if(!wasCalled){ beep(); vibrate(); wasCalled=true; }
+    } else {
+      // KUTMOQDA
+      wasCalled=false;
+      $('mineCard').classList.remove('called-card');
+      $('calledBanner').style.display='none';
+      $('waitingBlock').style.display='block';
+      $('calledBlock').style.display='none';
+      $('statusPill').innerHTML='<i></i>Navbatda';
+      $('statusPill').style.background='rgba(52,245,197,.1)';
+      $('posAhead').textContent=idx;
+      $('posWait').textContent=Math.max(1,idx*4);
+      $('nowServing').textContent = s.now? s.now.tag : '—';
+      // progress: boshlang'ich navbat uzunligiga nisbatan
+      var total=idx + (s.now?1:0) + 1;
+      var pct = total>0 ? Math.round(((total-idx)/total)*100) : 10;
+      $('posProg').style.width=Math.max(8,Math.min(100,pct))+'%';
+    }
+  }
+
+  function beep(){
+    try{ var ac=window.__ac||(window.__ac=new(window.AudioContext||window.webkitAudioContext)());
+      [0,0.18].forEach(function(d){ var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);
+        o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,ac.currentTime+d);
+        g.gain.exponentialRampToValueAtTime(.14,ac.currentTime+d+.02);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d+.16);
+        o.start(ac.currentTime+d);o.stop(ac.currentTime+d+.16); }); }catch(e){}
+  }
+  function vibrate(){ try{ if(navigator.vibrate) navigator.vibrate([200,80,200]); }catch(e){} }
+
+  // ---- boshqa tab (admin/tablo) o'zgartirsa yangilanadi ----
+  window.addEventListener('storage',function(e){
+    if(e.key===BKEY){ if(e.newValue&&INDUSTRIES[e.newValue]&&e.newValue!==branch){ applyBranch(e.newValue); } return; }
+    if(e.key===KEY||e.key===KEY+'_ping'){ render(); }
+  });
+  setInterval(render,15000); // kutish daqiqasini yangilab turadi
+
+  fillBranchSel(); setPlace(); renderServices();
+  render();
+})();
+</script>
+</body>
+</html>
