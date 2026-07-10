@@ -119,6 +119,10 @@ input.name:focus{border-color:var(--mint)}
 .branch-sel option{background:#0E2429}
 .svc-badge{width:44px;height:44px;border-radius:12px;background:var(--grad);color:#04241D;display:grid;place-items:center;flex:0 0 44px;font-family:var(--disp);font-weight:700;font-size:20px}
 .tw-lab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:center;margin-bottom:2px}
+.lang-switch{display:inline-flex;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:10px;padding:2px;gap:2px;margin-top:6px}
+.ls-btn{font-family:var(--body);font-weight:700;font-size:11.5px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 9px;border-radius:7px;transition:all .15s;letter-spacing:.03em}
+.ls-btn:hover{color:var(--ink)}
+.ls-btn.on{background:var(--grad);color:#04241D}
 </style>
 </head>
 <body>
@@ -129,7 +133,9 @@ input.name:focus{border-color:var(--mint)}
       <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
       Navbat<span class="grad-text">siz</span>
     </div>
-    <div class="place"><b id="plName">Shifo klinikasi</b><span id="plWhere">1-qavat · qabulxona</span><br><select id="branchSel" class="branch-sel" title="Muassasa"></select></div>
+    <div class="place"><b id="plName" data-nolang>Shifo klinikasi</b><span id="plWhere" data-nolang>1-qavat · qabulxona</span><br><select id="branchSel" data-nolang class="branch-sel" title="Muassasa"></select>
+      <div class="lang-switch" data-nolang><button class="ls-btn" data-lang="uz">UZ</button><button class="ls-btn" data-lang="ru">RU</button></div>
+    </div>
   </div>
 
   <!-- ====== VIEW 1: navbat olish ====== -->
@@ -139,7 +145,7 @@ input.name:focus{border-color:var(--mint)}
       <div class="desc">Jonli navbatda turmang — raqamli navbatingizni telefondan oling.</div>
 
       <p class="label">Qaysi xizmat kerak?</p>
-      <div class="svc-grid" id="svcGrid"></div>
+      <div class="svc-grid" id="svcGrid" data-nolang></div>
 
       <p class="label">Ismingiz (ixtiyoriy)</p>
       <input class="name" id="cName" placeholder="Chaqirilganda ekranda ko‘rinadi">
@@ -157,26 +163,26 @@ input.name:focus{border-color:var(--mint)}
     <div class="card" id="mineCard">
       <div id="calledBanner" style="display:none" class="called-banner">
         <span class="ic"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1"/></svg></span>
-        <span><b>Navbatingiz keldi!</b><span id="calledWin">Kassaga o‘ting</span></span>
+        <span><b>Navbatingiz keldi!</b><span id="calledWin" data-nolang>Kassaga o‘ting</span></span>
       </div>
 
       <div class="ticket-top">
-        <span class="status-pill" id="statusPill"><i></i>Navbatda</span>
+        <span class="status-pill" id="statusPill" data-nolang><i></i>Navbatda</span>
       </div>
-      <div class="tw-lab" id="twLab">Sizning navbatingiz</div>
-      <div class="big-num" id="myNum">A-000</div>
-      <div class="svc-name" id="mySvc">Terapevt qabuli</div>
+      <div class="tw-lab" id="twLab" data-nolang>Sizning navbatingiz</div>
+      <div class="big-num" id="myNum" data-nolang>A-000</div>
+      <div class="svc-name" id="mySvc" data-nolang>Terapevt qabuli</div>
 
       <!-- kutish holati -->
       <div id="waitingBlock">
         <div class="divider"></div>
         <div class="pos-row">
-          <div class="pos-box"><b class="num" id="posAhead">0</b><span>oldingizda</span></div>
+          <div class="pos-box"><b class="num" id="posAhead" data-nolang>0</b><span>oldingizda</span></div>
           <div class="pos-sep"></div>
-          <div class="pos-box"><b class="num" id="posWait">0</b><span>~ daqiqa</span></div>
+          <div class="pos-box"><b class="num" id="posWait" data-nolang>0</b><span>~ daqiqa</span></div>
         </div>
         <div class="prog"><i id="posProg"></i></div>
-        <div class="now-serving">Hozir xizmatda: <b id="nowServing">—</b></div>
+        <div class="now-serving">Hozir xizmatda: <b id="nowServing" data-nolang>—</b></div>
       </div>
 
       <!-- chaqirilgan holati -->
@@ -189,7 +195,7 @@ input.name:focus{border-color:var(--mint)}
       <div class="divider"></div>
       <button class="btn btn-ghost" id="cancelBtn">Navbatni bekor qilish</button>
     </div>
-    <p class="mini" id="ticketTime"></p>
+    <p class="mini" id="ticketTime" data-nolang></p>
   </div>
 
   <!-- ====== VIEW 3: yakunlandi ====== -->
@@ -205,6 +211,52 @@ input.name:focus{border-color:var(--mint)}
   </div>
 
 </div>
+
+<!-- ============ i18n (UZ/RU) — index.html bilan bir xil pattern ============ -->
+<script>
+var RU={
+  "Navbat oling":"Возьмите очередь",
+  "Jonli navbatda turmang — raqamli navbatingizni telefondan oling.":"Не стойте в живой очереди — берите цифровую очередь с телефона.",
+  "Qaysi xizmat kerak?":"Какая услуга нужна?","Ismingiz (ixtiyoriy)":"Ваше имя (необязательно)",
+  "Navbat olish":"Взять очередь",
+  "Navbatingiz yaqinlashganda ushbu sahifa o‘zi yangilanadi. Sahifani yopmang yoki xatcho‘pga qo‘shing.":"Когда очередь подойдёт, страница обновится сама. Не закрывайте её или добавьте в закладки.",
+  "Navbatingiz keldi!":"Ваша очередь подошла!",
+  "oldingizda":"перед вами","~ daqiqa":"~ минут","Hozir xizmatda:":"Сейчас обслуживается:",
+  "Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating":"Покажите QR-код для подтверждения прихода",
+  "Navbatni bekor qilish":"Отменить очередь",
+  "Xizmat yakunlandi":"Обслуживание завершено","Bizni tanlaganingiz uchun rahmat! Sog‘ bo‘ling.":"Спасибо, что выбрали нас! Будьте здоровы.","Yangi navbat olish":"Взять новую очередь"
+};
+var PH={"cName":"Появится на экране при вызове"};
+(function(){
+  var origMap=new Map();
+  function walk(fn){
+    var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(!n.nodeValue||!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+      var p=n.parentNode;if(!p)return NodeFilter.FILTER_REJECT;
+      var t=p.nodeName;if(t==="SCRIPT"||t==="STYLE")return NodeFilter.FILTER_REJECT;
+      if(p.closest&&p.closest("[data-nolang]"))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    var n;while(n=w.nextNode())fn(n);
+  }
+  function applyLang(lang){
+    window.LANG=lang;document.documentElement.lang=lang;
+    walk(function(n){
+      if(!origMap.has(n))origMap.set(n,n.nodeValue);
+      var orig=origMap.get(n),key=orig.trim();
+      if(lang==="ru"&&RU[key]!==undefined)n.nodeValue=orig.replace(key,RU[key]);
+      else n.nodeValue=orig;
+    });
+    Object.keys(PH).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(!e.dataset.phUz)e.dataset.phUz=e.getAttribute("placeholder")||"";e.setAttribute("placeholder",lang==="ru"?PH[id]:e.dataset.phUz);});
+    document.querySelectorAll(".ls-btn").forEach(function(b){b.classList.toggle("on",b.dataset.lang===lang);});
+    try{localStorage.setItem("nlang",lang);}catch(e){}
+    if(window.__onLang)window.__onLang(lang);
+  }
+  document.querySelectorAll("[data-lang]").forEach(function(b){b.addEventListener("click",function(){applyLang(b.dataset.lang);});});
+  var saved="uz";try{if(localStorage.getItem("nlang")==="ru")saved="ru";}catch(e){}
+  applyLang(saved);
+})();
+</script>
 
 <script type="module">
 /* ============================================================
@@ -230,17 +282,25 @@ var slug = (function(){
 var branch=null, branchId=null, services=[], svcByCode={}, svcName={};
 var picked=null, pollTimer=null, wasCalled=false;
 
+// ---- til: dinamik matnlar uchun (tr — talon o'zgaruvchisi bilan to'qnashmasin) ----
+var LANG = (window.LANG === 'ru') ? 'ru' : 'uz';
+function tr(uz, ru){ return LANG === 'ru' ? ru : uz; }
+window.__onLang = function(lang){ LANG = (lang === 'ru') ? 'ru' : 'uz'; if(branchId){ setPlace(); poll(); } };
+
 function myKey(){ return 'navbatsiz_my_'+slug; }
 function loadMy(){ try{ return JSON.parse(localStorage.getItem(myKey())); }catch(e){ return null; } }
 function saveMy(t){ try{ t? localStorage.setItem(myKey(), JSON.stringify(t)) : localStorage.removeItem(myKey()); }catch(e){} }
 
 function show(view){ document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')}); $(view).classList.add('on'); }
-function twLabel(){ var w=(branch && branch.ticket_word) || 'Navbat'; return 'Sizning '+w.toLowerCase()+'ingiz'; }
+function twLabel(){
+  var w=(branch && branch.ticket_word) || 'Navbat';
+  return tr('Sizning '+w.toLowerCase()+'ingiz', (/talon/i.test(w)?'Ваш талон':'Ваша очередь'));
+}
 function friendlyErr(e){
   var m=(e && e.message)||''+e;
-  if(/rate_limited/.test(m)) return 'Juda ko‘p urinish — biroz kuting va qayta urining.';
-  if(/service_not_found/.test(m)) return 'Xizmat topilmadi.';
-  return 'Aloqa xatosi. Internetni tekshirib, qayta urining.';
+  if(/rate_limited/.test(m)) return tr('Juda ko‘p urinish — biroz kuting va qayta urining.','Слишком много попыток — подождите и повторите.');
+  if(/service_not_found/.test(m)) return tr('Xizmat topilmadi.','Услуга не найдена.');
+  return tr('Aloqa xatosi. Internetni tekshirib, qayta urining.','Ошибка связи. Проверьте интернет и повторите.');
 }
 
 /* ---------- filial + xizmatlar ---------- */
@@ -328,7 +388,7 @@ function renderMine(my, mt, queue){
   show('mine');
   $('myNum').textContent=mt.tag;
   $('mySvc').textContent=svcName[mt.svc]||'';
-  $('ticketTime').textContent='Talon olindi: '+new Date(my.t).toLocaleTimeString('uz',{hour:'2-digit',minute:'2-digit'});
+  $('ticketTime').textContent=tr('Talon olindi: ','Талон получен: ')+new Date(my.t).toLocaleTimeString(LANG==='ru'?'ru':'uz',{hour:'2-digit',minute:'2-digit'});
 
   var serving=queue.filter(function(t){return t.status==='serving';});
   var nowTag = serving.length? serving.reduce(function(a,b){return b.t>a.t?b:a;}).tag : '—';
@@ -337,10 +397,11 @@ function renderMine(my, mt, queue){
     // CHAQIRILDI
     $('mineCard').classList.add('called-card');
     $('calledBanner').style.display='flex';
-    $('calledWin').textContent=((branch&&branch.window_word)||'Oyna')+' '+(mt.win||1)+' ga o‘ting';
+    var ww=(branch&&branch.window_word)||'Oyna';
+    $('calledWin').textContent=tr(ww+' '+(mt.win||1)+' ga o‘ting','Пройдите к: '+ww+' '+(mt.win||1));
     $('waitingBlock').style.display='none';
     $('calledBlock').style.display='block';
-    var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>Sizni chaqirishmoqda';
+    var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>'+tr('Sizni chaqirishmoqda','Вас вызывают');
     if(!wasCalled){ beep(); vibrate(); wasCalled=true; }
   } else {
     // KUTMOQDA
@@ -349,7 +410,7 @@ function renderMine(my, mt, queue){
     $('calledBanner').style.display='none';
     $('waitingBlock').style.display='block';
     $('calledBlock').style.display='none';
-    $('statusPill').innerHTML='<i></i>Navbatda'; $('statusPill').style.background='rgba(52,245,197,.1)';
+    $('statusPill').innerHTML='<i></i>'+tr('Navbatda','В очереди'); $('statusPill').style.background='rgba(52,245,197,.1)';
     var waiting=queue.filter(function(t){return t.status==='waiting';});
     var idx=waiting.findIndex(function(t){return t.id===mt.id;});
     var ahead=idx<0?0:idx;

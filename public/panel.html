@@ -185,6 +185,12 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
   padding:13px 14px;color:var(--ink);font-family:inherit;font-size:14.5px;outline:none;margin-bottom:14px}
 .login-input:focus{border-color:var(--mint)}
 .login-err{color:var(--red);font-size:12.5px;min-height:16px;margin-bottom:8px}
+
+/* ================= TIL ALMASHTIRGICH ================= */
+.lang-switch{display:inline-flex;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:11px;padding:3px;gap:2px}
+.ls-btn{font-family:var(--body);font-weight:700;font-size:12.5px;color:var(--muted);background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;transition:all .15s;letter-spacing:.03em}
+.ls-btn:hover{color:var(--ink)}
+.ls-btn.on{background:var(--grad);color:#04241D}
 </style>
 </head>
 <body>
@@ -195,6 +201,10 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
     <div class="brand" style="margin-bottom:20px;justify-content:center">
       <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
       <div>Navbat<span class="grad-text">siz</span><small>Boshqaruv paneli</small></div>
+    </div>
+    <div class="lang-switch" data-nolang style="margin:0 auto 18px;width:max-content">
+      <button class="ls-btn" data-lang="uz">UZ</button>
+      <button class="ls-btn" data-lang="ru">RU</button>
     </div>
     <form id="loginForm">
       <p class="login-label">Email</p>
@@ -212,12 +222,16 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
     <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
     <div>Navbat<span class="grad-text">siz</span><small>Boshqaruv paneli</small></div>
   </div>
-  <div class="top-mid"><span class="dot"></span><select id="branchSel" class="branch-sel" title="Soha / muassasa"></select></div>
+  <div class="top-mid"><span class="dot"></span><select id="branchSel" data-nolang class="branch-sel" title="Soha / muassasa"></select></div>
   <div class="tabs">
     <button class="tab on" data-view="admin"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg><span>Panel</span></button>
     <button class="tab" data-view="stat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg><span>Statistika</span></button>
     <button class="tab" id="tvBtn"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v11H3V5zm6 15h6M12 16v4"/></svg><span>TV-tablo</span></button>
     <button class="btn btn-glass" id="logoutBtn" style="padding:9px 16px;font-size:12.5px" title="Tizimdan chiqish">Chiqish</button>
+  </div>
+  <div class="lang-switch" data-nolang>
+    <button class="ls-btn" data-lang="uz">UZ</button>
+    <button class="ls-btn" data-lang="ru">RU</button>
   </div>
 </div>
 
@@ -229,12 +243,12 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
       <!-- LEFT: now serving + controls -->
       <div>
         <div class="card">
-          <div class="card-h"><h2>Hozir xizmatda</h2><span class="muted" id="servedCount">0 ta qabul qilindi</span></div>
+          <div class="card-h"><h2>Hozir xizmatda</h2><span class="muted" id="servedCount" data-nolang>0 ta qabul qilindi</span></div>
           <div class="serving">
             <div class="serving-now">
               <div class="serving-lab">Chaqirilgan raqam</div>
-              <div class="serving-num grad-text" id="nowNum">—</div>
-              <div class="serving-win" id="nowWin">Navbatni boshlang</div>
+              <div class="serving-num grad-text" id="nowNum" data-nolang>—</div>
+              <div class="serving-win" id="nowWin" data-nolang>Navbatni boshlang</div>
             </div>
             <div class="serving-actions">
               <button class="btn btn-grad btn-lg block" id="callNext"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg>Keyingisini chaqirish</button>
@@ -243,15 +257,15 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
             </div>
           </div>
           <div class="win-pick">
-            <span id="winLabel">Oyna:</span>
-            <span id="winChips"></span>
+            <span id="winLabel" data-nolang>Oyna:</span>
+            <span id="winChips" data-nolang></span>
           </div>
         </div>
 
         <div class="card" style="margin-top:16px">
           <div class="card-h"><h2>Yangi navbat qo‘shish</h2><span class="muted">qo‘lda yoki QR-stend orqali</span></div>
           <div class="add-row">
-            <select id="addSvc"></select>
+            <select id="addSvc" data-nolang></select>
             <input id="addName" placeholder="Mijoz ismi (ixtiyoriy)">
             <button class="btn btn-grad" id="addBtn"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>Talon berish</button>
           </div>
@@ -263,8 +277,8 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
 
       <!-- RIGHT: waiting queue -->
       <div class="card">
-        <div class="card-h"><h2>Kutayotganlar</h2><span class="muted"><b id="waitCount">0</b> kishi navbatda</span></div>
-        <div class="wait-list" id="waitList"></div>
+        <div class="card-h"><h2>Kutayotganlar</h2><span class="muted"><b id="waitCount" data-nolang>0</b> kishi navbatda</span></div>
+        <div class="wait-list" id="waitList" data-nolang></div>
       </div>
     </div>
   </div>
@@ -272,14 +286,14 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
   <!-- ============ STAT VIEW ============ -->
   <div class="view" id="view-stat">
     <div class="stat-row">
-      <div class="stat-c"><b class="grad-text num" id="stTotal">0</b><span>Bugun qabul qilindi</span></div>
-      <div class="stat-c"><b class="grad-text num" id="stWait">0</b><span>Hozir navbatda</span></div>
-      <div class="stat-c"><b class="grad-text num" id="stAvg">0</b><span>O‘rtacha kutish (daq)</span></div>
+      <div class="stat-c"><b class="grad-text num" id="stTotal" data-nolang>0</b><span>Bugun qabul qilindi</span></div>
+      <div class="stat-c"><b class="grad-text num" id="stWait" data-nolang>0</b><span>Hozir navbatda</span></div>
+      <div class="stat-c"><b class="grad-text num" id="stAvg" data-nolang>0</b><span>O‘rtacha kutish (daq)</span></div>
     </div>
     <div class="card">
       <div class="card-h"><h2>Soatlik oqim (bugun)</h2><span class="muted">namunaviy ma’lumot</span></div>
       <div style="padding:22px">
-        <svg viewBox="0 0 700 240" style="width:100%;height:auto" id="chart"></svg>
+        <svg viewBox="0 0 700 240" style="width:100%;height:auto" id="chart" data-nolang></svg>
       </div>
     </div>
     <p class="hint">Bu prototipda statistika namunaviy. Haqiqiy versiyada bu yerda kunlik/haftalik oqim, o‘rtacha kutish vaqti va oyna bo‘yicha yuklama ko‘rsatiladi.</p>
@@ -292,19 +306,19 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
   <div class="tv-top">
     <div class="tv-brand">
       <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
-      <div>Navbat<span class="grad-text">siz</span><div class="tv-place" id="tvPlace">Shifo klinikasi · 1-qavat</div></div>
+      <div>Navbat<span class="grad-text">siz</span><div class="tv-place" id="tvPlace" data-nolang>Shifo klinikasi · 1-qavat</div></div>
     </div>
-    <div style="text-align:right"><div class="tv-clock" id="tvClock">00:00</div></div>
+    <div style="text-align:right"><div class="tv-clock" id="tvClock" data-nolang>00:00</div></div>
   </div>
   <div class="tv-body">
     <div class="tv-now" id="tvNow">
       <div class="lab">Chaqirilmoqda</div>
-      <div class="big" id="tvNum">—</div>
-      <div class="win" id="tvWin"><span>kutilmoqda…</span></div>
+      <div class="big" id="tvNum" data-nolang>—</div>
+      <div class="win" id="tvWin" data-nolang><span>kutilmoqda…</span></div>
     </div>
     <div class="tv-next">
       <h3>Keyingi navbat</h3>
-      <div class="tv-next-list" id="tvNext"></div>
+      <div class="tv-next-list" id="tvNext" data-nolang></div>
     </div>
   </div>
   <div class="tv-foot">
@@ -317,7 +331,64 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
 </div>
 <button class="tv-exit" id="tvExit" title="Chiqish (Esc)"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
 
-<div id="toast"></div>
+<div id="toast" data-nolang></div>
+
+<!-- ============ i18n (UZ/RU) — index.html bilan bir xil pattern ============ -->
+<script>
+/* Statik matnni RU lug'ati orqali almashtiradi (TreeWalker); dinamik
+   qiymatlar (raqam, tag, DB nomlari) data-nolang bilan chetlab o'tiladi.
+   Dinamik JS matnlari esa modul ichida window.LANG asosida tarjima
+   qilinadi (window.__onLang hook orqali qayta chiziladi). */
+var RU={
+  "Boshqaruv paneli":"Панель управления",
+  "Email":"Эл. почта","Parol":"Пароль","Kirish":"Войти","Chiqish":"Выйти",
+  "Panel":"Панель","Statistika":"Статистика","TV-tablo":"ТВ-табло",
+  "Hozir xizmatda":"Сейчас обслуживается","Chaqirilgan raqam":"Вызванный номер",
+  "Keyingisini chaqirish":"Вызвать следующего","Qayta chaqirish":"Вызвать повторно","Xizmat tugadi":"Обслуживание завершено",
+  "Yangi navbat qo‘shish":"Добавить в очередь","qo‘lda yoki QR-stend orqali":"вручную или через QR-стенд","Talon berish":"Выдать талон",
+  "Kutayotganlar":"Ожидающие","Soatlik oqim (bugun)":"Почасовой поток (сегодня)","namunaviy ma’lumot":"пример данных",
+  "Bugun qabul qilindi":"Принято сегодня","Hozir navbatda":"Сейчас в очереди","O‘rtacha kutish (daq)":"Среднее ожидание (мин)",
+  "Chaqirilmoqda":"Вызывается","Keyingi navbat":"Следующая очередь",
+  "Navbatga yozilish:":"Запись в очередь:","Navbatingizni telefondan oling — jonli navbatda turmang":"Берите очередь с телефона — не стойте в живой очереди",
+  "Bu prototipda statistika namunaviy. Haqiqiy versiyada bu yerda kunlik/haftalik oqim, o‘rtacha kutish vaqti va oyna bo‘yicha yuklama ko‘rsatiladi.":"В прототипе статистика демонстрационная. В реальной версии здесь будут дневной/недельный поток, среднее время ожидания и загрузка по окнам.",
+  "Panel va tablo bir xil brauzerda":"Панель и табло в одном браузере",
+  "real vaqtda sinxron":"синхронны в реальном времени",
+  "ishlaydi (bitta oynada panel, ikkinchisida tablo ochib sinab ko‘ring).":"работают (откройте панель в одном окне, табло — в другом).",
+  "Tezkor tugmalar:":"Горячие клавиши:","Bo‘sh joy":"Пробел",
+  "— keyingisini chaqirish ·":"— вызвать следующего ·","— yangi talon ·":"— новый талон ·","— TV-tablo.":"— ТВ-табло."
+};
+var PH={"loginEmail":"sotrudnik@uchrejdenie.uz"};
+(function(){
+  var origMap=new Map();
+  function walk(fn){
+    var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(!n.nodeValue||!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+      var p=n.parentNode;if(!p)return NodeFilter.FILTER_REJECT;
+      var t=p.nodeName;if(t==="SCRIPT"||t==="STYLE")return NodeFilter.FILTER_REJECT;
+      if(p.closest&&p.closest("[data-nolang]"))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    var n;while(n=w.nextNode())fn(n);
+  }
+  function applyLang(lang){
+    window.LANG=lang;document.documentElement.lang=lang;
+    walk(function(n){
+      if(!origMap.has(n))origMap.set(n,n.nodeValue);
+      var orig=origMap.get(n),key=orig.trim();
+      if(lang==="ru"&&RU[key]!==undefined)n.nodeValue=orig.replace(key,RU[key]);
+      else n.nodeValue=orig;
+    });
+    Object.keys(PH).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(!e.dataset.phUz)e.dataset.phUz=e.getAttribute("placeholder")||"";e.setAttribute("placeholder",lang==="ru"?PH[id]:e.dataset.phUz);});
+    document.querySelectorAll(".ls-btn").forEach(function(b){b.classList.toggle("on",b.dataset.lang===lang);});
+    try{localStorage.setItem("nlang",lang);}catch(e){}
+    if(window.__onLang)window.__onLang(lang);
+  }
+  window.__applyLang=applyLang;
+  document.querySelectorAll("[data-lang]").forEach(function(b){b.addEventListener("click",function(){applyLang(b.dataset.lang);});});
+  var saved="uz";try{if(localStorage.getItem("nlang")==="ru")saved="ru";}catch(e){}
+  applyLang(saved);
+})();
+</script>
 
 <script type="module">
 /* ============================================================
@@ -340,6 +411,13 @@ var $ = function(id){ return document.getElementById(id); };
 var params = new URLSearchParams(location.search);
 var isTV = params.get('view') === 'tv';   // ochiq TV-tablo rejimi (login yo'q)
 
+// ---- til: dinamik (JS bilan yasalgan) matnlar uchun ----
+// (tr — "translate"; `t` nomi talon o'zgaruvchisi bilan to'qnashmasin)
+var LANG = (window.LANG === 'ru') ? 'ru' : 'uz';
+function tr(uz, ru){ return LANG === 'ru' ? ru : uz; }
+// Til almashsa (i18n classic-script chaqiradi) — dinamik matnlarni qayta chizamiz.
+window.__onLang = function(lang){ LANG = (lang === 'ru') ? 'ru' : 'uz'; if(branchId) render(); };
+
 // ---- holat ----
 var branch=null, services=[], windows=[1,2,3], svcById={}, svcByCode={}, svcName={};
 var branchId=null, WW='Oyna';
@@ -355,7 +433,7 @@ function setLive(ok){
   var d=document.querySelector('.top .dot'); if(!d) return;
   d.style.background = ok? 'var(--mint)' : 'var(--red)';
   d.style.boxShadow  = ok? '0 0 10px var(--mint)' : '0 0 10px var(--red)';
-  d.title = ok? 'Aloqa faol' : 'Aloqa uzildi — qayta urinilmoqda…';
+  d.title = ok? tr('Aloqa faol','Соединение активно') : tr('Aloqa uzildi — qayta urinilmoqda…','Соединение потеряно — повтор…');
 }
 
 /* ============================================================
@@ -393,7 +471,7 @@ $('loginForm').addEventListener('submit', function(e){
   var errEl=$('loginError'), btn=e.target.querySelector('button[type=submit]');
   errEl.textContent=''; btn.disabled=true;
   signIn(email,password)
-    .catch(function(){ errEl.textContent='Email yoki parol noto‘g‘ri, yoki aloqa xatosi.'; })
+    .catch(function(){ errEl.textContent=tr('Email yoki parol noto‘g‘ri, yoki aloqa xatosi.','Неверный e-mail или пароль, либо ошибка соединения.'); })
     .then(function(){ btn.disabled=false; });
 });
 var logoutBtn=$('logoutBtn'); if(logoutBtn) logoutBtn.addEventListener('click', function(){ signOut(); });
@@ -416,7 +494,7 @@ function applyBranchMeta(b, svcs, wins){
 async function initPanel(){
   try{
     var res=await loadStaffBranch();
-    if(!res){ toast('Sizga filial biriktirilmagan. Administrator bilan bog‘laning.'); return; }
+    if(!res){ toast(tr('Sizga filial biriktirilmagan. Administrator bilan bog‘laning.','Вам не назначен филиал. Обратитесь к администратору.')); return; }
     applyBranchMeta(res.branch, res.services, await loadWindows(res.branch.id));
     renderWins(); renderSvcOptions();
     await refresh();
@@ -424,7 +502,7 @@ async function initPanel(){
     channel=subscribe(branchId, function(){ refresh(); }, function(status){
       setLive(status==='SUBSCRIBED');
     });
-  }catch(e){ console.error(e); toast('Yuklashda xatolik: '+ (e && e.message || e)); }
+  }catch(e){ console.error(e); toast(tr('Yuklashda xatolik','Ошибка загрузки')+': '+ (e && e.message || e)); }
 }
 
 async function initTV(){
@@ -465,7 +543,7 @@ async function refresh(){
       state.served=await countDone(branchId);
     }
     setLive(true); render();
-  }catch(e){ console.error(e); setLive(false); toast('Aloqa uzildi, qayta urinilmoqda…'); }
+  }catch(e){ console.error(e); setLive(false); toast(tr('Aloqa uzildi, qayta urinilmoqda…','Соединение потеряно, повтор…')); }
 }
 
 // ---- holatdan hosilalar ----
@@ -488,19 +566,19 @@ function render(){
   // now serving (admin)
   if($('nowNum')){
     $('nowNum').textContent = now? now.tag : '—';
-    $('nowWin').textContent = now? (WW+' '+(now.win||state.win)+(now.name?' · '+now.name:'')) : 'Navbatni boshlang';
-    $('servedCount').textContent = state.served+' ta qabul qilindi';
+    $('nowWin').textContent = now? (WW+' '+(now.win||state.win)+(now.name?' · '+now.name:'')) : tr('Navbatni boshlang','Начните очередь');
+    $('servedCount').textContent = state.served+' '+tr('ta qabul qilindi','принято');
   }
   // waiting list
   var wl=$('waitList');
   if(wl){
     wl.innerHTML='';
-    if(!waiting.length){ wl.innerHTML='<div class="empty">Navbat bo‘sh — yangi talon qo‘shing yoki QR-stend orqali mijozlar yoziladi.</div>'; }
+    if(!waiting.length){ wl.innerHTML='<div class="empty">'+tr('Navbat bo‘sh — yangi talon qo‘shing yoki QR-stend orqali mijozlar yoziladi.','Очередь пуста — добавьте талон или клиенты запишутся через QR-стенд.')+'</div>'; }
     waiting.forEach(function(t,i){
       var row=document.createElement('div'); row.className='wrow'+(i===0?' next':'');
       var mins=Math.max(0,Math.round((Date.now()-t.t)/60000));
       row.innerHTML='<div class="wtag grad-text">'+t.tag+'</div>'+
-        '<div class="wmeta"><b>'+label(t)+'</b>'+(i===0?'keyingi · ':'')+mins+' daq kutmoqda</div>'+
+        '<div class="wmeta"><b>'+label(t)+'</b>'+(i===0?tr('keyingi · ','следующий · '):'')+mins+' '+tr('daq kutmoqda','мин ожидает')+'</div>'+
         '<div class="wact"><button class="icon-btn go" title="Shu raqamni chaqirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg></button>'+
         '<button class="icon-btn del" title="O‘chirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
       row.querySelector('.go').onclick=function(){ callSpecific(t.id); };
@@ -524,12 +602,12 @@ function renderTV(now, waiting){
   now = now || nowTicket(); waiting = waiting || waitingList();
   if($('tvNum')){
     $('tvNum').textContent = now? now.tag : '—';
-    $('tvWin').innerHTML = now? (WW+' '+(now.win||1)) : '<span>kutilmoqda…</span>';
+    $('tvWin').innerHTML = now? (WW+' '+(now.win||1)) : '<span>'+tr('kutilmoqda…','ожидание…')+'</span>';
   }
   var nx=$('tvNext'); if(!nx) return;
   nx.innerHTML='';
   var up=waiting.slice(0,4);
-  if(!up.length){ nx.innerHTML='<div class="tv-empty">Navbatda hech kim yo‘q</div>'; }
+  if(!up.length){ nx.innerHTML='<div class="tv-empty">'+tr('Navbatda hech kim yo‘q','В очереди никого нет')+'</div>'; }
   up.forEach(function(t){
     var d=document.createElement('div'); d.className='tv-nrow';
     d.innerHTML='<b class="grad-text">'+t.tag+'</b><span>'+label(t)+'</span>';
@@ -552,34 +630,35 @@ function flashTV(){
 /* ============================================================
  *  AMALLAR (xodim) — barchasi DB RPC orqali
  * ============================================================ */
-function requireAuth(){ if(!window.__panelAuthed){ toast('Avval tizimga kiring'); return false; } return true; }
+function requireAuth(){ if(!window.__panelAuthed){ toast(tr('Avval tizimga kiring','Сначала войдите в систему')); return false; } return true; }
 function friendlyErr(e){
   var m=(e && e.message)||''+e;
-  if(/rate_limited/.test(m)) return 'Juda ko‘p urinish — biroz kuting.';
-  if(/not_authorized/.test(m)) return 'Ruxsat yo‘q.';
-  if(/service_not_found/.test(m)) return 'Xizmat topilmadi.';
-  return 'Amal bajarilmadi. Aloqani tekshiring.';
+  if(/rate_limited/.test(m)) return tr('Juda ko‘p urinish — biroz kuting.','Слишком много попыток — подождите.');
+  if(/not_authorized/.test(m)) return tr('Ruxsat yo‘q.','Нет доступа.');
+  if(/service_not_found/.test(m)) return tr('Xizmat topilmadi.','Услуга не найдена.');
+  return tr('Amal bajarilmadi. Aloqani tekshiring.','Действие не выполнено. Проверьте соединение.');
 }
+function calledMsg(t){ return tr('Chaqirildi: ','Вызван: ')+t.tag+' → '+WW+' '+state.win; }
 
 async function doCallNext(){
   if(!requireAuth() || !branchId) return;
-  if(!waitingList().length){ toast('Navbat bo‘sh'); return; }
+  if(!waitingList().length){ toast(tr('Navbat bo‘sh','Очередь пуста')); return; }
   try{
     var t=await dbCallNext(branchId, state.win);
     await refresh();
-    if(t){ flashTV(); toast('Chaqirildi: '+t.tag+' → '+WW+' '+state.win); }
-    else toast('Navbat bo‘sh');
+    if(t){ flashTV(); toast(calledMsg(t)); }
+    else toast(tr('Navbat bo‘sh','Очередь пуста'));
   }catch(e){ toast(friendlyErr(e)); }
 }
 function recall(){
   if(!requireAuth()) return;
   var now=nowTicket();
-  if(now){ flashTV(); toast('Qayta chaqirildi: '+now.tag); }
+  if(now){ flashTV(); toast(tr('Qayta chaqirildi: ','Повторно вызван: ')+now.tag); }
 }
 async function doDone(){
   if(!requireAuth()) return;
-  var now=nowTicket(); if(!now){ toast('Hozir xizmatda hech kim yo‘q'); return; }
-  try{ await dbFinish(now.id); await refresh(); toast('Xizmat yakunlandi'); }
+  var now=nowTicket(); if(!now){ toast(tr('Hozir xizmatda hech kim yo‘q','Сейчас никого не обслуживают')); return; }
+  try{ await dbFinish(now.id); await refresh(); toast(tr('Xizmat yakunlandi','Обслуживание завершено')); }
   catch(e){ toast(friendlyErr(e)); }
 }
 async function callSpecific(ticketId){
@@ -587,7 +666,7 @@ async function callSpecific(ticketId){
   try{
     var t=await dbCallTicket(ticketId, state.win);
     await refresh();
-    if(t){ flashTV(); toast('Chaqirildi: '+t.tag+' → '+WW+' '+state.win); }
+    if(t){ flashTV(); toast(calledMsg(t)); }
   }catch(e){ toast(friendlyErr(e)); }
 }
 async function removeTicket(ticketId){
@@ -598,12 +677,12 @@ async function removeTicket(ticketId){
 async function addTicket(){
   if(!requireAuth()) return;
   var code=$('addSvc').value, svc=svcByCode[code];
-  if(!svc){ toast('Xizmat tanlanmagan'); return; }
+  if(!svc){ toast(tr('Xizmat tanlanmagan','Услуга не выбрана')); return; }
   try{
     var t=await dbTake(svc.id, $('addName').value.trim());
     $('addName').value='';
     await refresh();
-    if(t) toast('Talon berildi: '+t.tag);
+    if(t) toast(tr('Talon berildi: ','Талон выдан: ')+t.tag);
   }catch(e){ toast(friendlyErr(e)); }
 }
 
