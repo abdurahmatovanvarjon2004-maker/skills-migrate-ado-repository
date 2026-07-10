@@ -119,6 +119,13 @@ input.name:focus{border-color:var(--mint)}
 .branch-sel option{background:#0E2429}
 .svc-badge{width:44px;height:44px;border-radius:12px;background:var(--grad);color:#04241D;display:grid;place-items:center;flex:0 0 44px;font-family:var(--disp);font-weight:700;font-size:20px}
 .tw-lab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:center;margin-bottom:2px}
+.recovery{margin-top:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.rec-lab{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px}
+.rec-row{display:flex;gap:8px}
+.rec-row input{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:10px;padding:9px 11px;color:var(--ink);font-family:var(--mono);font-size:12px;outline:none}
+.rec-row button{white-space:nowrap;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35);color:var(--mint);font-weight:700;font-size:12.5px;padding:9px 13px;border-radius:10px}
+#netBanner{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(214,85,58,.95);color:#fff;text-align:center;font-weight:700;font-size:13px;padding:9px 12px;transform:translateY(-100%);transition:transform .3s}
+#netBanner.show{transform:translateY(0)}
 .lang-switch{display:inline-flex;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:10px;padding:2px;gap:2px;margin-top:6px}
 .ls-btn{font-family:var(--body);font-weight:700;font-size:11.5px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 9px;border-radius:7px;transition:all .15s;letter-spacing:.03em}
 .ls-btn:hover{color:var(--ink)}
@@ -126,6 +133,7 @@ input.name:focus{border-color:var(--mint)}
 </style>
 </head>
 <body>
+<div id="netBanner" data-nolang></div>
 <div class="shell">
 
   <div class="head">
@@ -194,6 +202,14 @@ input.name:focus{border-color:var(--mint)}
 
       <div class="divider"></div>
       <button class="btn btn-ghost" id="cancelBtn">Navbatni bekor qilish</button>
+
+      <div class="recovery" id="recoveryBox" style="display:none">
+        <p class="rec-lab">Boshqa qurilmadan ochish uchun havolani saqlang:</p>
+        <div class="rec-row">
+          <input id="recLink" data-nolang readonly>
+          <button id="recCopy" type="button">Nusxa olish</button>
+        </div>
+      </div>
     </div>
     <p class="mini" id="ticketTime" data-nolang></p>
   </div>
@@ -224,6 +240,7 @@ var RU={
   "oldingizda":"перед вами","~ daqiqa":"~ минут","Hozir xizmatda:":"Сейчас обслуживается:",
   "Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating":"Покажите QR-код для подтверждения прихода",
   "Navbatni bekor qilish":"Отменить очередь",
+  "Boshqa qurilmadan ochish uchun havolani saqlang:":"Сохраните ссылку, чтобы открыть с другого устройства:","Nusxa olish":"Копировать","Nusxa olindi ✓":"Скопировано ✓",
   "Xizmat yakunlandi":"Обслуживание завершено","Bizni tanlaganingiz uchun rahmat! Sog‘ bo‘ling.":"Спасибо, что выбрали нас! Будьте здоровы.","Yangi navbat olish":"Взять новую очередь"
 };
 var PH={"cName":"Появится на экране при вызове"};
@@ -273,11 +290,14 @@ import {
 
 var $ = function(id){ return document.getElementById(id); };
 var BKEY='navbatsiz_branch';
+var _q = new URLSearchParams(location.search);
 var slug = (function(){
-  try{ var u=new URLSearchParams(location.search).get('b'); if(u) return u; }catch(e){}
+  var u=_q.get('b'); if(u) return u;
   try{ var b=localStorage.getItem(BKEY); if(b) return b; }catch(e){}
   return DEFAULT_BRANCH_SLUG;
 })();
+// Tiklash havolasi: ?t=<access_token> — boshqa qurilmadan o'z talonini ochish (4.2)
+var recoverToken = _q.get('t') || null;
 
 var branch=null, branchId=null, services=[], svcByCode={}, svcName={};
 var picked=null, pollTimer=null, wasCalled=false;
@@ -317,6 +337,16 @@ async function loadAll(){
   services.forEach(function(s){ svcByCode[s.code]=s; svcName[s.code]=s.name; });
   setPlace(); renderServices();
   try{ fillBranchSel(await loadBranches()); }catch(e){}
+  // ?t= havolasi bilan kelingan bo'lsa — o'sha talonni qabul qilamiz (tiklash)
+  if(recoverToken && !loadMy()){
+    try{
+      var rt=await getTicketByToken(recoverToken);
+      if(rt && rt.status!=='done' && rt.status!=='no_show' && rt.status!=='cancelled'){
+        saveMy({ id:rt.id, token:recoverToken, tag:rt.tag, svc:rt.svc, t:rt.t });
+      }
+    }catch(e){}
+    recoverToken=null;
+  }
   // shu filialda oldingi talon bo'lsa — kuzatishni davom ettiramiz
   if(loadMy()){ startTracking(); } else { stopTracking(); show('pick'); }
 }
@@ -376,9 +406,30 @@ async function poll(){
   try{
     var mt=await getTicketByToken(my.token);
     var q=await loadQueuePublic(branchId);
+    netOk();
     renderMine(my, mt, q);
-  }catch(e){ /* tarmoq — keyingi urinishda tiklanadi */ }
+  }catch(e){ netErr(); /* keyingi urinishda tiklanadi */ }
 }
+function netOk(){ var b=$('netBanner'); if(b) b.classList.remove('show'); }
+function netErr(){ var b=$('netBanner'); if(b){ b.textContent=tr('Aloqa uzildi, qayta urinilmoqda…','Соединение потеряно, повтор…'); b.classList.add('show'); } }
+
+// Tiklash havolasini ko'rsatish (4.2) — istalgan qurilmadan o'z talonini ochish.
+function setupRecovery(my){
+  var box=$('recoveryBox'); if(!box) return;
+  $('recLink').value = location.origin + location.pathname + '?b=' + encodeURIComponent(slug) + '&t=' + encodeURIComponent(my.token);
+  box.style.display='block';
+}
+(function(){
+  var btn=$('recCopy'); if(!btn) return;
+  btn.onclick=function(){
+    var inp=$('recLink'); inp.select(); inp.setSelectionRange(0,99999);
+    var done=function(){ btn.textContent=tr('Nusxa olindi ✓','Скопировано ✓'); setTimeout(function(){ btn.textContent=tr('Nusxa olish','Копировать'); },1600); };
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(inp.value).then(done, function(){ try{document.execCommand('copy');}catch(e){} done(); }); }
+      else { document.execCommand('copy'); done(); }
+    }catch(e){ done(); }
+  };
+})();
 
 function renderMine(my, mt, queue){
   // talon topilmasa yoki yakunlangan/no_show — rahmat ekrani
@@ -386,6 +437,7 @@ function renderMine(my, mt, queue){
   if(mt.status==='cancelled'){ show('pick'); saveMy(null); stopTracking(); return; }
 
   show('mine');
+  setupRecovery(my);
   $('myNum').textContent=mt.tag;
   $('mySvc').textContent=svcName[mt.svc]||'';
   $('ticketTime').textContent=tr('Talon olindi: ','Талон получен: ')+new Date(my.t).toLocaleTimeString(LANG==='ru'?'ru':'uz',{hour:'2-digit',minute:'2-digit'});

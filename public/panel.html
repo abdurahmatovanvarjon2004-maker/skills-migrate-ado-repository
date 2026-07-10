@@ -160,6 +160,11 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
   background:rgba(12,24,38,.7);color:var(--muted);display:none;place-items:center}
 #tv.on ~ .tv-exit{display:grid}
 .tv-exit svg{width:20px;height:20px;stroke:currentColor}
+/* TV to'liq ekran tugmasi (4.1) — faqat ochiq TV rejimida ko'rinadi */
+#fsBtn{position:fixed;bottom:16px;right:16px;z-index:62;display:none;align-items:center;gap:8px;
+  background:rgba(12,24,38,.8);border:1px solid var(--line-2);color:var(--ink);font-weight:700;font-size:13px;
+  padding:10px 16px;border-radius:12px;cursor:pointer}
+#fsBtn svg{width:16px;height:16px;stroke:currentColor}
 
 /* toast */
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(140%);z-index:80;
@@ -330,6 +335,7 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
   </div>
 </div>
 <button class="tv-exit" id="tvExit" title="Chiqish (Esc)"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+<button id="fsBtn"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/></svg><span>To‘liq ekran</span></button>
 
 <div id="toast" data-nolang></div>
 
@@ -355,7 +361,8 @@ var RU={
   "real vaqtda sinxron":"синхронны в реальном времени",
   "ishlaydi (bitta oynada panel, ikkinchisida tablo ochib sinab ko‘ring).":"работают (откройте панель в одном окне, табло — в другом).",
   "Tezkor tugmalar:":"Горячие клавиши:","Bo‘sh joy":"Пробел",
-  "— keyingisini chaqirish ·":"— вызвать следующего ·","— yangi talon ·":"— новый талон ·","— TV-tablo.":"— ТВ-табло."
+  "— keyingisini chaqirish ·":"— вызвать следующего ·","— yangi talon ·":"— новый талон ·","— TV-tablo.":"— ТВ-табло.",
+  "To‘liq ekran":"Полный экран"
 };
 var PH={"loginEmail":"sotrudnik@uchrejdenie.uz"};
 (function(){
@@ -522,6 +529,24 @@ function showPanelHiddenForTV(){
   $('mainWrap').style.display='none';
   var ex=document.querySelector('.tv-exit'); if(ex) ex.style.display='none';
   $('tv').classList.add('on');
+  setupFullscreen();
+}
+// 4.1 — TV-tablo to'liq ekran: brauzer Fullscreen API foydalanuvchi
+// harakatini talab qiladi, shu sabab tugma + birinchi bosishda avtomatik.
+function goFullscreen(){
+  var el=document.documentElement;
+  var req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(req){ try{ req.call(el); }catch(e){} }
+}
+function setupFullscreen(){
+  var btn=$('fsBtn'); if(!btn) return;
+  btn.style.display='flex';
+  btn.onclick=goFullscreen;
+  // birinchi foydalanuvchi harakatida (bosish/klavisha) avtomatik urinib ko'ramiz
+  var once=function(){ goFullscreen(); window.removeEventListener('pointerdown',once); window.removeEventListener('keydown',once); };
+  window.addEventListener('pointerdown',once); window.addEventListener('keydown',once);
+  // to'liq ekran holatini kuzatib, tugmani yashiramiz/ko'rsatamiz
+  document.addEventListener('fullscreenchange',function(){ btn.style.display=document.fullscreenElement? 'none':'flex'; });
 }
 
 function teardown(){
