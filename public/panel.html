@@ -14,9 +14,11 @@
   --bg:#08181B;--bg-2:#0B2126;--card:#0E2429;--line:rgba(183,214,203,.12);--line-2:rgba(183,214,203,.20);
   --ink:#EDF5F1;--muted:#8FA8A0;--mint:#37D9A0;--cyan:#F5B63F;--violet:#177E76;--amber:#F5B63F;--red:#D6553A;
   --grad:linear-gradient(115deg,#F7C948 0%,#F5A83B 55%,#E58E2F 100%);
+  --brand:#37D9A0;   /* kompaniya brend rangi — applyBranding() o'zgartiradi */
   --disp:'Unbounded',ui-sans-serif,system-ui,sans-serif;--body:'Golos Text',ui-sans-serif,system-ui,sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
 }
+.tv-brand .mk img,.brand .mk img{width:100%;height:100%;object-fit:cover;border-radius:9px;display:block}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--body);background:
   radial-gradient(700px 460px at 88% -8%, rgba(34,211,238,.10), transparent 60%),
@@ -137,7 +139,7 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
 .tv-now{border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   background:linear-gradient(150deg,rgba(52,245,197,.16),rgba(34,211,238,.06) 50%,rgba(139,124,255,.16));
   border:1px solid rgba(52,245,197,.3);position:relative;overflow:hidden}
-.tv-now .lab{font-size:1.5vw;letter-spacing:.2em;text-transform:uppercase;color:#BFE3D6;font-weight:700}
+.tv-now .lab{font-size:1.5vw;letter-spacing:.2em;text-transform:uppercase;color:var(--brand);font-weight:700}
 .tv-now .big{font-family:var(--mono);font-weight:600;font-size:16vw;line-height:.9;letter-spacing:0;
   background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:1vh 0}
 .tv-now .win{font-size:2.4vw;font-weight:700;color:var(--ink)}
@@ -232,6 +234,7 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
     <button class="tab on" data-view="admin"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg><span>Panel</span></button>
     <button class="tab" data-view="stat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg><span>Statistika</span></button>
     <button class="tab" id="tvBtn"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v11H3V5zm6 15h6M12 16v4"/></svg><span>TV-tablo</span></button>
+    <a class="tab" id="settingsLink" href="admin.html" style="display:none;text-decoration:none"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3a2 2 0 013.4 0l.5.9a2 2 0 002.3 1l1-.3a2 2 0 012.4 2.4l-.3 1a2 2 0 001 2.3l.9.5a2 2 0 010 3.4l-.9.5a2 2 0 00-1 2.3l.3 1a2 2 0 01-2.4 2.4l-1-.3a2 2 0 00-2.3 1l-.5.9a2 2 0 01-3.4 0l-.5-.9a2 2 0 00-2.3-1l-1 .3a2 2 0 01-2.4-2.4l.3-1a2 2 0 00-1-2.3l-.9-.5a2 2 0 010-3.4l.9-.5a2 2 0 001-2.3l-.3-1A2 2 0 016.5 5.9l1 .3a2 2 0 002.3-1z"/><circle cx="12" cy="12" r="3"/></svg><span>Sozlamalar</span></a>
     <button class="btn btn-glass" id="logoutBtn" style="padding:9px 16px;font-size:12.5px" title="Tizimdan chiqish">Chiqish</button>
   </div>
   <div class="lang-switch" data-nolang>
@@ -362,7 +365,7 @@ var RU={
   "ishlaydi (bitta oynada panel, ikkinchisida tablo ochib sinab ko‘ring).":"работают (откройте панель в одном окне, табло — в другом).",
   "Tezkor tugmalar:":"Горячие клавиши:","Bo‘sh joy":"Пробел",
   "— keyingisini chaqirish ·":"— вызвать следующего ·","— yangi talon ·":"— новый талон ·","— TV-tablo.":"— ТВ-табло.",
-  "To‘liq ekran":"Полный экран"
+  "To‘liq ekran":"Полный экран","Sozlamalar":"Настройки"
 };
 var PH={"loginEmail":"sotrudnik@uchrejdenie.uz"};
 (function(){
@@ -410,7 +413,7 @@ import {
   getSession, onAuthChange, signIn, signOut,
   loadStaffBranch, loadBranch, loadWindows, loadTickets, loadQueuePublic, countDone,
   callNext as dbCallNext, callTicket as dbCallTicket, finishTicket as dbFinish,
-  cancelTicket as dbCancel, takeTicket as dbTake,
+  cancelTicket as dbCancel, takeTicket as dbTake, myContext,
   subscribe, unsubscribe, DEFAULT_BRANCH_SLUG
 } from './navbatsiz-db.js';
 
@@ -492,6 +495,7 @@ function applyBranchMeta(b, svcs, wins){
   services.forEach(function(s){ svcById[s.id]=s; svcByCode[s.code]=s; svcName[s.code]=s.name; });
   windows = (wins && wins.length)? wins.map(function(w){return w.no;}) : [1,2,3];
   state.win = windows[0] || 1;
+  applyBranding(b);
   // filial nomi top-bar select'ida (endi almashtirmaydi — faqat ko'rsatadi)
   var sel=$('branchSel');
   if(sel){ sel.innerHTML='<option>'+b.name+'</option>'; sel.value=b.name; sel.disabled=true; }
@@ -504,6 +508,8 @@ async function initPanel(){
     if(!res){ toast(tr('Sizga filial biriktirilmagan. Administrator bilan bog‘laning.','Вам не назначен филиал. Обратитесь к администратору.')); return; }
     applyBranchMeta(res.branch, res.services, await loadWindows(res.branch.id));
     renderWins(); renderSvcOptions();
+    // Sozlamalar havolasi faqat filial admini / platforma admini uchun
+    try{ var c=await myContext(); if(c && (c.is_admin || c.role==='admin')){ var sl=$('settingsLink'); if(sl) sl.style.display=''; } }catch(e){}
     await refresh();
     // real-time (xodim uchun RLS ruxsat beradi)
     channel=subscribe(branchId, function(){ refresh(); }, function(status){
@@ -522,6 +528,14 @@ async function initTV(){
     // anon realtime RLS sabab ishlamaydi — davriy so'rov bilan yangilaymiz
     pollTimer=setInterval(refresh, 4000);
   }catch(e){ console.error(e); }
+}
+// Kompaniya brendi: TV brand mark logotipi va urg'u rangi (bo'lsa).
+function applyBranding(b){
+  try{
+    document.documentElement.style.setProperty('--brand', (b && b.brand_color) ? b.brand_color : '#37D9A0');
+    var mk=document.querySelector('.tv-brand .mk');
+    if(mk && b && b.logo_url){ mk.innerHTML='<img src="'+b.logo_url+'" alt="">'; mk.style.background='#fff'; }
+  }catch(e){}
 }
 function showPanelHiddenForTV(){
   $('loginGate').style.display='none';
