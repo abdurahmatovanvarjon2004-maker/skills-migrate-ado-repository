@@ -64,6 +64,7 @@ Domen ulangach: `public/index.html` dagi `og:image` ni to'liq URL'ga o'zgartirin
 - [x] Sahifalarni Supabase'ga ulash (real-time / poll)
 - [x] Admin-panel autentifikatsiyasi (email+parol)
 - [x] RLS'ni toraytirish (xodim/mijoz ajratildi, PII himoyasi, flood himoyasi)
-- [ ] Panel/mijozga UZ/RU til almashtirgichi
-- [ ] TV-tablo to'g'ridan-to'g'ri URL (avto to'liq ekran)
-- [ ] Mijoz navbatini boshqa qurilmadan tiklash (havola/kod)
+- [x] Panel/mijozga UZ/RU til almashtirgichi
+- [x] TV-tablo to'g'ridan-to'g'ri URL + to'liq ekran (`?view=tv&b=<slug>`)
+- [x] Mijoz navbatini boshqa qurilmadan tiklash (`?b=<slug>&t=<token>` havola)
+- [x] Tarmoq xatolarida foydalanuvchiga xabar (banner / ulanish nuqtasi)
