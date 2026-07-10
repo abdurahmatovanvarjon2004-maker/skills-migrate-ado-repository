@@ -160,6 +160,65 @@ export async function noshowTicket(ticketId) {
   if (error) throw error;
 }
 
+/* ============================================================
+ *  KOMPANIYA BOSHQARUVI (admin.html + panel sozlamalari)
+ * ============================================================ */
+// Joriy foydalanuvchi konteksti: { is_admin, branch_id, role } yoki null.
+export async function myContext() {
+  const { data, error } = await sb.rpc('my_context');
+  if (error) throw error;
+  return firstRow(data);
+}
+// Filial xizmatlari (admin tahrirlashi uchun — active bo'lmaganlar ham).
+export async function loadServicesAll(branchId) {
+  const { data, error } = await sb.from('services').select('*').eq('branch_id', branchId).order('sort');
+  if (error) throw error;
+  return data || [];
+}
+export async function loadWindowsAll(branchId) {
+  const { data, error } = await sb.from('windows').select('*').eq('branch_id', branchId).order('no');
+  if (error) throw error;
+  return data || [];
+}
+// Yangi kompaniya (faqat platforma admini).
+export async function createBranch(b) {
+  const { data, error } = await sb.rpc('create_branch', {
+    p_name: b.name, p_slug: b.slug, p_place: b.place || '', p_industry: b.industry || 'other',
+    p_ticket_word: b.ticket_word || 'Navbat', p_window_word: b.window_word || 'Oyna',
+    p_brand_color: b.brand_color || '', p_logo_url: b.logo_url || ''
+  });
+  if (error) throw error;
+  return firstRow(data);
+}
+export async function upsertService(branchId, s) {
+  const { data, error } = await sb.rpc('upsert_service', {
+    p_branch: branchId, p_code: s.code, p_name: s.name, p_hint: s.hint || '',
+    p_sort: s.sort || 0, p_active: s.active !== false
+  });
+  if (error) throw error;
+  return firstRow(data);
+}
+export async function upsertWindow(branchId, w) {
+  const { data, error } = await sb.rpc('upsert_window', {
+    p_branch: branchId, p_no: w.no, p_label: w.label || '', p_active: w.active !== false
+  });
+  if (error) throw error;
+  return firstRow(data);
+}
+export async function updateBranchSettings(branchId, b) {
+  const { data, error } = await sb.rpc('update_branch_settings', {
+    p_branch: branchId, p_name: b.name, p_place: b.place || '',
+    p_ticket_word: b.ticket_word || 'Navbat', p_window_word: b.window_word || 'Oyna',
+    p_brand_color: b.brand_color || '', p_logo_url: b.logo_url || '', p_active: b.active !== false
+  });
+  if (error) throw error;
+  return firstRow(data);
+}
+export async function assignStaff(userId, branchId, role) {
+  const { error } = await sb.rpc('assign_staff', { p_user: userId, p_branch: branchId, p_role: role || 'operator' });
+  if (error) throw error;
+}
+
 /* ---- Autentifikatsiya (panel.html uchun — xodim login/logout) ----
  * Xodim akkauntlari Supabase dashboard (Authentication → Users) orqali
  * qo'lda yaratiladi — bu yerda o'z-o'ziga ro'yxatdan o'tish yo'q. */
