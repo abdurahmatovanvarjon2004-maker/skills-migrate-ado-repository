@@ -115,6 +115,19 @@ export async function getTicketByToken(token) {
   return mapTicket(firstRow(data));
 }
 
+// Bugungi barcha talonlar (real statistika uchun): soatlik oqim va
+// o'rtacha kutish shulardan hisoblanadi. Faqat xodim (RLS: o'z filiali).
+export async function loadTodayStats(branchId) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { data, error } = await sb.from('tickets')
+    .select('created_at, called_at, done_at, status')
+    .eq('branch_id', branchId)
+    .gte('created_at', today.toISOString())
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 // Bugun yakunlangan (statistika uchun)
 export async function countDone(branchId) {
   const today = new Date(); today.setHours(0,0,0,0);
@@ -250,6 +263,16 @@ export function subscribe(branchId, onChange, onStatus) {
         onChange)
     .subscribe(onStatus ? (status) => onStatus(status) : undefined);
 }
+// Xizmatlar/oynalar o'zgarsa (admin.html'da tahrirlansa) panel yangilanishi
+// uchun — services jadvaliga alohida obuna.
+export function subscribeServices(branchId, onChange) {
+  return sb.channel('services-' + branchId)
+    .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'services', filter: 'branch_id=eq.' + branchId },
+        onChange)
+    .subscribe();
+}
+
 // Kanalni to'xtatish (filial almashganda eski obunani yopish uchun).
 export function unsubscribe(channel) {
   if (channel) { try { sb.removeChannel(channel); } catch (e) {} }

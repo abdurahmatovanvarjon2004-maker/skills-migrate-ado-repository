@@ -157,7 +157,7 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
 .tv-empty{flex:1;display:grid;place-items:center;color:var(--muted);font-size:1.5vw}
 .tv-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2.4vh;color:var(--muted);font-size:1.1vw}
 .tv-foot .qr{display:flex;align-items:center;gap:1vw}
-.tv-foot .qr svg{width:3.4vw;height:3.4vw;background:#EDF5F1;border-radius:8px;padding:.4vw}
+.tv-foot .qr svg{width:7vw;height:7vw;min-width:84px;min-height:84px;background:#EDF5F1;border-radius:10px;padding:.4vw}
 .tv-exit{position:fixed;top:14px;right:16px;z-index:61;width:44px;height:44px;border-radius:12px;border:1px solid var(--line-2);
   background:rgba(12,24,38,.7);color:var(--muted);display:none;place-items:center}
 #tv.on ~ .tv-exit{display:grid}
@@ -262,6 +262,7 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
               <button class="btn btn-grad btn-lg block" id="callNext"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg>Keyingisini chaqirish</button>
               <button class="btn btn-amber block" id="recall"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 9A8 8 0 006 5.3M4 15a8 8 0 0014 3.7"/></svg>Qayta chaqirish</button>
               <button class="btn btn-glass block" id="done"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Xizmat tugadi</button>
+              <button class="btn btn-red block" id="noshow"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Kelmadi</button>
             </div>
           </div>
           <div class="win-pick">
@@ -299,12 +300,12 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
       <div class="stat-c"><b class="grad-text num" id="stAvg" data-nolang>0</b><span>O‘rtacha kutish (daq)</span></div>
     </div>
     <div class="card">
-      <div class="card-h"><h2>Soatlik oqim (bugun)</h2><span class="muted">namunaviy ma’lumot</span></div>
+      <div class="card-h"><h2>Soatlik oqim (bugun)</h2><span class="muted" id="chartMeta" data-nolang></span></div>
       <div style="padding:22px">
         <svg viewBox="0 0 700 240" style="width:100%;height:auto" id="chart" data-nolang></svg>
       </div>
     </div>
-    <p class="hint">Bu prototipda statistika namunaviy. Haqiqiy versiyada bu yerda kunlik/haftalik oqim, o‘rtacha kutish vaqti va oyna bo‘yicha yuklama ko‘rsatiladi.</p>
+    <p class="hint">Grafik bugungi haqiqiy kelish oqimini (soat bo‘yicha yangi talonlar) ko‘rsatadi. O‘rtacha kutish — bugun chaqirilgan talonlarning kutish vaqtidan hisoblanadi.</p>
   </div>
 
 </div>
@@ -331,8 +332,8 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
   </div>
   <div class="tv-foot">
     <div class="qr">
-      <svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/></svg>
-      <span>Navbatga yozilish: <b style="color:var(--ink)">navbatsiz.uz</b></span>
+      <span id="tvQrBox" data-nolang><svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/></svg></span>
+      <span>Navbatga yozilish: <b style="color:var(--ink)" id="tvQrHost" data-nolang>navbatsiz.uz</b></span>
     </div>
     <div>Navbatingizni telefondan oling — jonli navbatda turmang</div>
   </div>
@@ -341,6 +342,9 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
 <button id="fsBtn"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/></svg><span>To‘liq ekran</span></button>
 
 <div id="toast" data-nolang></div>
+
+<!-- QR generator (lokal vendor, MIT) — TV-tablodagi haqiqiy QR uchun -->
+<script src="qr.js"></script>
 
 <!-- ============ i18n (UZ/RU) — index.html bilan bir xil pattern ============ -->
 <script>
@@ -355,11 +359,11 @@ var RU={
   "Hozir xizmatda":"Сейчас обслуживается","Chaqirilgan raqam":"Вызванный номер",
   "Keyingisini chaqirish":"Вызвать следующего","Qayta chaqirish":"Вызвать повторно","Xizmat tugadi":"Обслуживание завершено",
   "Yangi navbat qo‘shish":"Добавить в очередь","qo‘lda yoki QR-stend orqali":"вручную или через QR-стенд","Talon berish":"Выдать талон",
-  "Kutayotganlar":"Ожидающие","Soatlik oqim (bugun)":"Почасовой поток (сегодня)","namunaviy ma’lumot":"пример данных",
+  "Kutayotganlar":"Ожидающие","Soatlik oqim (bugun)":"Почасовой поток (сегодня)","Kelmadi":"Не пришёл",
   "Bugun qabul qilindi":"Принято сегодня","Hozir navbatda":"Сейчас в очереди","O‘rtacha kutish (daq)":"Среднее ожидание (мин)",
   "Chaqirilmoqda":"Вызывается","Keyingi navbat":"Следующая очередь",
   "Navbatga yozilish:":"Запись в очередь:","Navbatingizni telefondan oling — jonli navbatda turmang":"Берите очередь с телефона — не стойте в живой очереди",
-  "Bu prototipda statistika namunaviy. Haqiqiy versiyada bu yerda kunlik/haftalik oqim, o‘rtacha kutish vaqti va oyna bo‘yicha yuklama ko‘rsatiladi.":"В прототипе статистика демонстрационная. В реальной версии здесь будут дневной/недельный поток, среднее время ожидания и загрузка по окнам.",
+  "Grafik bugungi haqiqiy kelish oqimini (soat bo‘yicha yangi talonlar) ko‘rsatadi. O‘rtacha kutish — bugun chaqirilgan talonlarning kutish vaqtidan hisoblanadi.":"График показывает реальный поток за сегодня (новые талоны по часам). Среднее ожидание считается по вызванным сегодня талонам.",
   "Panel va tablo bir xil brauzerda":"Панель и табло в одном браузере",
   "real vaqtda sinxron":"синхронны в реальном времени",
   "ishlaydi (bitta oynada panel, ikkinchisida tablo ochib sinab ko‘ring).":"работают (откройте панель в одном окне, табло — в другом).",
@@ -413,8 +417,9 @@ import {
   getSession, onAuthChange, signIn, signOut,
   loadStaffBranch, loadBranch, loadWindows, loadTickets, loadQueuePublic, countDone,
   callNext as dbCallNext, callTicket as dbCallTicket, finishTicket as dbFinish,
-  cancelTicket as dbCancel, takeTicket as dbTake, myContext,
-  subscribe, unsubscribe, DEFAULT_BRANCH_SLUG
+  cancelTicket as dbCancel, takeTicket as dbTake, noshowTicket as dbNoshow,
+  myContext, loadTodayStats,
+  subscribe, subscribeServices, unsubscribe, DEFAULT_BRANCH_SLUG
 } from './navbatsiz-db.js';
 
 var $ = function(id){ return document.getElementById(id); };
@@ -431,8 +436,8 @@ window.__onLang = function(lang){ LANG = (lang === 'ru') ? 'ru' : 'uz'; if(branc
 // ---- holat ----
 var branch=null, services=[], windows=[1,2,3], svcById={}, svcByCode={}, svcName={};
 var branchId=null, WW='Oyna';
-var state={ list:[], served:0, win:1 };
-var channel=null, pollTimer=null, inited=false;
+var state={ list:[], served:0, win:1, avgWaitToday:null };
+var channel=null, svcChannel=null, pollTimer=null, inited=false;
 
 // ---- toast ----
 var tT;
@@ -500,6 +505,19 @@ function applyBranchMeta(b, svcs, wins){
   var sel=$('branchSel');
   if(sel){ sel.innerHTML='<option>'+b.name+'</option>'; sel.value=b.name; sel.disabled=true; }
   $('tvPlace').textContent=b.name+(b.place? ' · '+b.place : '');
+  renderTvQr(b);
+}
+
+// TV-tablodagi HAQIQIY QR: shu filialning mijoz sahifasi havolasi.
+// Skan qilgan odam to'g'ridan-to'g'ri navbat olish sahifasiga tushadi.
+function renderTvQr(b){
+  var box=$('tvQrBox'); if(!box || !window.qrcode || !b || !b.slug) return;
+  try{
+    var url=location.origin + location.pathname.replace(/panel\.html$/,'mijoz.html') + '?b=' + encodeURIComponent(b.slug);
+    var qr=window.qrcode(0,'M'); qr.addData(url); qr.make();
+    box.innerHTML=qr.createSvgTag({cellSize:4, margin:2});
+    var host=$('tvQrHost'); if(host) host.textContent=location.host || 'navbatsiz.uz';
+  }catch(e){ /* QR chizilmasa dekorativ SVG qoladi */ }
 }
 
 async function initPanel(){
@@ -515,7 +533,18 @@ async function initPanel(){
     channel=subscribe(branchId, function(){ refresh(); }, function(status){
       setLive(status==='SUBSCRIBED');
     });
+    // xizmatlar admin.html'da o'zgarsa — metani qayta yuklaymiz
+    svcChannel=subscribeServices(branchId, function(){ reloadMeta(); });
   }catch(e){ console.error(e); toast(tr('Yuklashda xatolik','Ошибка загрузки')+': '+ (e && e.message || e)); }
+}
+
+// Filial metasi (xizmatlar/oynalar/so'zlar) o'zgarganda qayta yuklash.
+async function reloadMeta(){
+  try{
+    var res=await loadStaffBranch(); if(!res) return;
+    applyBranchMeta(res.branch, res.services, await loadWindows(res.branch.id));
+    renderWins(); renderSvcOptions(); render();
+  }catch(e){ console.error(e); }
 }
 
 async function initTV(){
@@ -565,8 +594,9 @@ function setupFullscreen(){
 
 function teardown(){
   if(channel){ unsubscribe(channel); channel=null; }
+  if(svcChannel){ unsubscribe(svcChannel); svcChannel=null; }
   if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
-  branchId=null; state.list=[]; state.served=0;
+  branchId=null; state.list=[]; state.served=0; state.avgWaitToday=null;
 }
 
 /* ============================================================
@@ -627,7 +657,7 @@ function render(){
     $('waitCount').textContent=waiting.length;
     $('stTotal').textContent=state.served;
     $('stWait').textContent=waiting.length;
-    $('stAvg').textContent=avgWait(waiting);
+    $('stAvg').textContent = state.avgWaitToday!=null ? state.avgWaitToday : avgWait(waiting);
   }
   renderTV(now, waiting);
 }
@@ -700,6 +730,14 @@ async function doDone(){
   try{ await dbFinish(now.id); await refresh(); toast(tr('Xizmat yakunlandi','Обслуживание завершено')); }
   catch(e){ toast(friendlyErr(e)); }
 }
+// Chaqirilgan mijoz kelmasa — talonni "no_show" deb belgilash
+// (statistikada "kelmagan" sifatida qoladi, "yakunlangan" emas).
+async function doNoshow(){
+  if(!requireAuth()) return;
+  var now=nowTicket(); if(!now){ toast(tr('Hozir xizmatda hech kim yo‘q','Сейчас никого не обслуживают')); return; }
+  try{ await dbNoshow(now.id); await refresh(); toast(tr('Kelmadi deb belgilandi: ','Отмечен как не пришедший: ')+now.tag); }
+  catch(e){ toast(friendlyErr(e)); }
+}
 async function callSpecific(ticketId){
   if(!requireAuth()) return;
   try{
@@ -761,6 +799,7 @@ setInterval(function(){ if(branchId) render(); }, 30000); // kutish daqiqalarini
 if($('callNext')) $('callNext').onclick=doCallNext;
 if($('recall'))   $('recall').onclick=recall;
 if($('done'))     $('done').onclick=doDone;
+if($('noshow'))   $('noshow').onclick=doNoshow;
 if($('addBtn'))   $('addBtn').onclick=addTicket;
 if($('addName'))  $('addName').addEventListener('keydown',function(e){ if(e.key==='Enter'){ addTicket(); } });
 
@@ -783,17 +822,43 @@ document.addEventListener('keydown',function(e){
   else if(e.key==='Escape'){ closeTV(); }
 });
 
-// namunaviy grafik (statistika) — hozircha namunaviy ma'lumot
-function drawChart(){
-  var data=[4,9,14,21,26,23,19,24,28,22,17,12];
-  var labels=['09','10','11','12','13','14','15','16','17','18','19','20'];
-  var svg=$('chart'); if(!svg) return; var W=700,H=240,pad=30, max=30;
-  var bw=(W-pad*2)/data.length;
+// Real statistika: bugungi talonlardan soatlik kelish oqimi + o'rtacha
+// kutish (called_at - created_at). Statistika ko'rinishi ochilganda yuklanadi.
+async function drawChart(){
+  var svg=$('chart'); if(!svg || !branchId) return;
+  var rows=[];
+  try{ rows=await loadTodayStats(branchId); }catch(e){ console.error(e); }
+
+  // soatlik histogramma (yangi talonlar)
+  var byHour={};
+  rows.forEach(function(r){ var h=new Date(r.created_at).getHours(); byHour[h]=(byHour[h]||0)+1; });
+  var hours=Object.keys(byHour).map(Number);
+  // ko'rish oynasi: kamida 09–18, ma'lumot bo'lsa kengayadi
+  var from=Math.min(9, hours.length?Math.min.apply(null,hours):9);
+  var to=Math.max(18, hours.length?Math.max.apply(null,hours):18);
+  var data=[], labels=[];
+  for(var h=from; h<=to; h++){ data.push(byHour[h]||0); labels.push(String(h).padStart(2,'0')); }
+  var max=Math.max(5, Math.max.apply(null, data));
+
+  // o'rtacha kutish: bugun chaqirilganlar bo'yicha (daqiqa)
+  var waits=rows.filter(function(r){return r.called_at;})
+                .map(function(r){return (new Date(r.called_at)-new Date(r.created_at))/60000;});
+  state.avgWaitToday = waits.length? Math.round(waits.reduce(function(a,b){return a+b;},0)/waits.length) : null;
+  if(state.avgWaitToday!=null && $('stAvg')) $('stAvg').textContent=state.avgWaitToday;
+  var meta=$('chartMeta');
+  if(meta) meta.textContent = rows.length? (rows.length+' '+tr('ta talon bugun','талонов сегодня')) : '';
+
+  var W=700,H=240,pad=30;
   var g='<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#37D9A0"/><stop offset="1" stop-color="#F5B63F" stop-opacity=".5"/></linearGradient></defs>';
+  if(!rows.length){
+    g+='<text x="'+(W/2)+'" y="'+(H/2)+'" fill="#8FA8A0" font-size="15" text-anchor="middle">'+tr('Bugun hali talon yo‘q — grafik birinchi talondan keyin chiziladi','Сегодня талонов ещё нет — график появится после первого талона')+'</text>';
+    svg.innerHTML=g; return;
+  }
+  var bw=(W-pad*2)/data.length;
   for(var y=0;y<=3;y++){ var yy=pad+(H-pad*2)*(y/3); g+='<line x1="'+pad+'" y1="'+yy+'" x2="'+(W-pad)+'" y2="'+yy+'" stroke="rgba(148,193,255,.12)"/>'; g+='<text x="6" y="'+(yy+4)+'" fill="#8FA8A0" font-size="11">'+Math.round(max-max*(y/3))+'</text>'; }
   data.forEach(function(v,i){
-    var bh=(H-pad*2)*(v/max), x=pad+i*bw+bw*0.22, w=bw*0.56, yy=H-pad-bh;
-    g+='<rect x="'+x+'" y="'+yy+'" width="'+w+'" height="'+bh+'" rx="5" fill="url(#bg)"/>';
+    var bh=(H-pad*2)*(v/max), x=pad+i*bw+bw*0.22, w=Math.min(bw*0.56, 46), yy=H-pad-bh;
+    if(v>0) g+='<rect x="'+x+'" y="'+yy+'" width="'+w+'" height="'+bh+'" rx="5" fill="url(#bg)"/>';
     g+='<text x="'+(x+w/2)+'" y="'+(H-pad+16)+'" fill="#8FA8A0" font-size="11" text-anchor="middle">'+labels[i]+'</text>';
   });
   svg.innerHTML=g;

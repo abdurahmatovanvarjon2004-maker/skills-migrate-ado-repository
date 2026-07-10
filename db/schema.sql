@@ -440,8 +440,20 @@ grant execute on function public.can_manage_branch(uuid)                        
 -- ============================================================
 --  REALTIME
 -- ============================================================
-alter publication supabase_realtime add table public.tickets;
-alter publication supabase_realtime add table public.services;
+-- Idempotent: jadval allaqachon publikatsiyada bo'lsa xato bermaydi
+-- (schema.sql'ni qayta ishga tushirish xavfsiz bo'lishi uchun).
+do $$
+declare t text;
+begin
+  foreach t in array array['tickets','services','windows'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
 
 -- ============================================================
 --  ISBOT: 4 XIL SOHA — bir xil tizim, turli sozlama

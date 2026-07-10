@@ -198,7 +198,7 @@ input.name:focus{border-color:var(--mint)}
       <!-- chaqirilgan holati -->
       <div id="calledBlock" style="display:none">
         <div class="divider"></div>
-        <div class="qr-box"><svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/><rect x="26" y="40" width="10" height="2"/></svg></div>
+        <div class="qr-box" id="calledQr" data-nolang><svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/><rect x="26" y="40" width="10" height="2"/></svg></div>
         <p class="qr-cap">Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating</p>
       </div>
 
@@ -229,6 +229,9 @@ input.name:focus{border-color:var(--mint)}
   </div>
 
 </div>
+
+<!-- QR generator (lokal vendor, MIT) — chaqirilgan ekranidagi haqiqiy QR uchun -->
+<script src="qr.js"></script>
 
 <!-- ============ i18n (UZ/RU) — index.html bilan bir xil pattern ============ -->
 <script>
@@ -426,6 +429,20 @@ async function poll(){
 function netOk(){ var b=$('netBanner'); if(b) b.classList.remove('show'); }
 function netErr(){ var b=$('netBanner'); if(b){ b.textContent=tr('Aloqa uzildi, qayta urinilmoqda…','Соединение потеряно, повтор…'); b.classList.add('show'); } }
 
+// Chaqirilgan ekranidagi HAQIQIY QR: talon tiklash havolasi — xodim skan
+// qilsa mijozning talonini (holati bilan) ko'radi. Token bo'yicha keshlanadi
+// (har 4s poll'da qayta chizmaslik uchun).
+function renderCalledQr(my){
+  var box=$('calledQr'); if(!box || !window.qrcode || !my || !my.token) return;
+  if(box.dataset.tok===my.token) return;
+  try{
+    var url=location.origin + location.pathname + '?b=' + encodeURIComponent(slug) + '&t=' + encodeURIComponent(my.token);
+    var qr=window.qrcode(0,'M'); qr.addData(url); qr.make();
+    box.innerHTML=qr.createSvgTag({cellSize:4, margin:0});
+    box.dataset.tok=my.token;
+  }catch(e){ /* QR chizilmasa dekorativ SVG qoladi */ }
+}
+
 // Tiklash havolasini ko'rsatish (4.2) — istalgan qurilmadan o'z talonini ochish.
 function setupRecovery(my){
   var box=$('recoveryBox'); if(!box) return;
@@ -466,6 +483,7 @@ function renderMine(my, mt, queue){
     $('calledWin').textContent=tr(ww+' '+(mt.win||1)+' ga o‘ting','Пройдите к: '+ww+' '+(mt.win||1));
     $('waitingBlock').style.display='none';
     $('calledBlock').style.display='block';
+    renderCalledQr(my);
     var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>'+tr('Sizni chaqirishmoqda','Вас вызывают');
     if(!wasCalled){ beep(); vibrate(); wasCalled=true; }
   } else {
