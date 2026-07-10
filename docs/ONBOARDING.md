@@ -39,12 +39,17 @@ Endi shu foydalanuvchi `admin.html`'ga kirib yangi kompaniya ocha oladi.
    - Brend rangi (ixtiyoriy), logotip URL (ixtiyoriy)
 3. Kompaniya yaratilgach, unga **xizmatlar** (A/B/C...) va **oynalar**
    qo'shing.
-4. **Xodim login'i:** statik sayt xavfsiz tarzda Auth foydalanuvchisi
-   yarata olmaydi, shuning uchun:
-   - Supabase → Authentication → Users → xodimga email+parol yarating.
-   - Uning `user_id`'sini admin UI'dagi **"Xodim biriktirish"** formasiga
-     kiriting (rol: `admin` = sozlamalarni tahrirlaydi, `operator` =
-     faqat navbat).
+4. **Xodim login'i** — ikki usul:
+
+   **A) To'g'ridan-to'g'ri (tavsiya, Edge Function deploy qilingan bo'lsa):**
+   admin UI'dagi "Xodimlar" kartasida email + parol + rol kiritib
+   **"Akkaunt yaratish"** bosing — akkaunt yaratiladi va filialga
+   biriktiriladi, xodim darhol panelga kira oladi.
+
+   **B) Zaxira (qo'lda):** Supabase → Authentication → Users → xodimga
+   email+parol yarating, so'ng `user_id`'sini admin UI'dagi zaxira
+   formaga kiriting (rol: `admin` = sozlamalarni tahrirlaydi,
+   `operator` = faqat navbat).
 
 Xodim endi `panel.html`'ga kirib o'z kompaniyasini boshqaradi.
 Mijoz `mijoz.html?b=<slug>`, TV-tablo `panel.html?view=tv&b=<slug>`.
@@ -87,6 +92,28 @@ on conflict (user_id) do update set branch_id=excluded.branch_id, role=excluded.
 
 > **Eslatma:** Xizmat kodlari (A/B/C...) talonida prefiks bo'ladi (A-001).
 > Oyna soni panelda tanlanadigan oynalar sonini belgilaydi.
+
+---
+
+## Edge Function: `create-staff` (xodim akkauntini UI'dan yaratish)
+
+Admin UI'dagi "Akkaunt yaratish" tugmasi ishlashi uchun bir marta deploy
+qilinadi (aks holda zaxira/qo'lda usul ishlayveradi):
+
+```bash
+# Supabase CLI o'rnatilgan bo'lsin: https://supabase.com/docs/guides/cli
+supabase login
+supabase link --project-ref <SIZNING-PROJECT-REF>   # URL'dagi subdomen
+supabase functions deploy create-staff
+```
+
+Qo'shimcha secret talab qilinmaydi — `SUPABASE_URL` va
+`SUPABASE_SERVICE_ROLE_KEY` funksiya muhitiga avtomatik beriladi.
+
+Sinov: admin.html → kompaniya tanlang → "Xodimlar" → email+parol →
+"Akkaunt yaratish" → yangi xodim bilan panel.html'ga kirib ko'ring.
+Xavfsizlik: funksiya chaqiruvchining JWT'sini tekshiradi — faqat
+platforma admini yoki shu filialning 'admin'i akkaunt yarata oladi.
 
 ---
 

@@ -231,6 +231,20 @@ export async function assignStaff(userId, branchId, role) {
   const { error } = await sb.rpc('assign_staff', { p_user: userId, p_branch: branchId, p_role: role || 'operator' });
   if (error) throw error;
 }
+// Xodimga email+parol akkaunt yaratish (create-staff Edge Function orqali).
+// Funksiya deploy qilinmagan bo'lsa xato tashlaydi — UI qo'lda usulga yo'naltiradi.
+export async function createStaffAccount(email, password, branchId, role) {
+  const { data, error } = await sb.functions.invoke('create-staff', {
+    body: { email, password, branch_id: branchId, role: role || 'operator' }
+  });
+  if (error) {
+    let msg = error.message || 'function_error';
+    try { const j = await error.context.json(); if (j && j.error) msg = j.error; } catch (e) {}
+    throw new Error(msg);
+  }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
 
 /* ---- Autentifikatsiya (panel.html uchun — xodim login/logout) ----
  * Xodim akkauntlari Supabase dashboard (Authentication → Users) orqali

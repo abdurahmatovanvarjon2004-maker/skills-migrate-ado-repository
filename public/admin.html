@@ -210,14 +210,28 @@ table.tbl input:focus{border-color:var(--mint)}
       <div class="card section" id="staffCard">
         <div class="card-h"><h2>Xodimlar</h2></div>
         <div class="card-b">
-          <p class="hint">Avval xodimga <b>Supabase → Authentication → Users</b> orqali email+parol yarating, so‘ng uning <b>user_id</b>‘sini quyiga kiriting.</p>
+          <p class="hint">Xodimga login akkaunt yarating — u shu email+parol bilan panelga kiradi.</p>
+          <div class="grid2" style="margin-top:10px">
+            <div><label class="fl">Xodim email</label><input class="in" id="fNewEmail" type="email" placeholder="xodim@muassasa.uz" autocomplete="off"></div>
+            <div><label class="fl">Parol (kamida 8 belgi)</label><input class="in" id="fNewPass" type="text" placeholder="masalan: Kassa2026!" autocomplete="off" data-nolang></div>
+          </div>
+          <div class="grid2">
+            <div><label class="fl">Rol</label>
+              <select class="in" id="fNewRole"><option value="operator">Operator (faqat navbat)</option><option value="admin">Admin (sozlamalar)</option></select>
+            </div>
+            <div style="display:flex;align-items:flex-end"><button class="btn btn-grad btn-sm" id="createStaffBtn" style="width:100%">Akkaunt yaratish</button></div>
+          </div>
+          <p class="err" id="newStaffErr"></p><p class="ok" id="newStaffOk"></p>
+
+          <div class="divider" style="height:1px;background:var(--line);margin:16px 0"></div>
+          <p class="hint">Yoki (zaxira usul): akkaunt Supabase dashboard'da yaratilgan bo‘lsa, user_id‘sini kiriting.</p>
           <div class="grid2" style="margin-top:10px">
             <div><label class="fl" data-nolang>Xodim user_id (UUID)</label><input class="in" id="fStaffId" placeholder="00000000-0000-…" data-nolang></div>
             <div><label class="fl">Rol</label>
               <select class="in" id="fStaffRole"><option value="operator">Operator (faqat navbat)</option><option value="admin">Admin (sozlamalar)</option></select>
             </div>
           </div>
-          <div style="margin-top:14px"><button class="btn btn-grad btn-sm" id="assignBtn">Biriktirish</button></div>
+          <div style="margin-top:14px"><button class="btn btn-glass btn-sm" id="assignBtn">Biriktirish</button></div>
           <p class="err" id="staffErr"></p><p class="ok" id="staffOk"></p>
         </div>
       </div>
@@ -240,7 +254,9 @@ var RU={
   "＋ Xizmat qo‘shish":"＋ Добавить услугу","Oynalar":"Окна","＋ Oyna qo‘shish":"＋ Добавить окно",
   "Xodimlar":"Сотрудники","Rol":"Роль","Operator (faqat navbat)":"Оператор (только очередь)","Admin (sozlamalar)":"Админ (настройки)","Biriktirish":"Привязать",
   "Sizda kompaniya boshqarish ruxsati yo‘q. Platforma admini bilan bog‘laning.":"У вас нет прав на управление компаниями. Обратитесь к администратору платформы.",
-  "Avval xodimga Supabase → Authentication → Users orqali email+parol yarating, so‘ng uning user_id‘sini quyiga kiriting.":"Сначала создайте сотруднику email+пароль в Supabase → Authentication → Users, затем введите его user_id ниже.",
+  "Xodimga login akkaunt yarating — u shu email+parol bilan panelga kiradi.":"Создайте сотруднику логин-аккаунт — он войдёт в панель с этим email+паролем.",
+  "Xodim email":"Email сотрудника","Parol (kamida 8 belgi)":"Пароль (мин. 8 символов)","Akkaunt yaratish":"Создать аккаунт",
+  "Yoki (zaxira usul): akkaunt Supabase dashboard'da yaratilgan bo‘lsa, user_id‘sini kiriting.":"Или (резервный способ): если аккаунт уже создан в Supabase dashboard, введите его user_id.",
   "Izoh":"Описание","Faol":"Активна","O‘chiq":"Выключена","Saqlash ✓":"Сохранить ✓"
 };
 var PH={"loginEmail":"admin@navbatsiz.uz"};
@@ -277,7 +293,8 @@ var PH={"loginEmail":"admin@navbatsiz.uz"};
 import {
   getSession, onAuthChange, signIn, signOut, myContext,
   loadBranches, loadServicesAll, loadWindowsAll,
-  createBranch, upsertService, upsertWindow, updateBranchSettings, assignStaff
+  createBranch, upsertService, upsertWindow, updateBranchSettings, assignStaff,
+  createStaffAccount
 } from './navbatsiz-db.js';
 
 var $=function(id){return document.getElementById(id);};
@@ -446,6 +463,28 @@ function winRow(w){
 $('addWinRow').addEventListener('click',function(){ $('winRows').appendChild(winRow({no:($('winRows').children.length+1),label:'',active:true})); });
 
 /* ---- staff ---- */
+// Asosiy usul: email+parol bilan akkaunt yaratish (create-staff Edge Function).
+$('createStaffBtn').addEventListener('click',async function(){
+  $('newStaffErr').textContent=''; $('newStaffOk').textContent='';
+  if(!current||current.__new){ $('newStaffErr').textContent=tr('Avval kompaniyani saqlang.','Сначала сохраните компанию.'); return; }
+  var em=$('fNewEmail').value.trim(), pw=$('fNewPass').value, rl=$('fNewRole').value;
+  if(!/^\S+@\S+\.\S+$/.test(em)){ $('newStaffErr').textContent=tr('To‘g‘ri email kiriting.','Введите корректный email.'); return; }
+  if(pw.length<8){ $('newStaffErr').textContent=tr('Parol kamida 8 belgi bo‘lsin.','Пароль — минимум 8 символов.'); return; }
+  var btn=$('createStaffBtn'); btn.disabled=true;
+  try{
+    await createStaffAccount(em, pw, current.id, rl);
+    $('newStaffOk').textContent=tr('Akkaunt yaratildi va biriktirildi ✓','Аккаунт создан и привязан ✓');
+    $('fNewEmail').value=''; $('fNewPass').value='';
+    toast(tr('Xodim tayyor — panelga kira oladi','Сотрудник готов — может войти в панель'));
+  }catch(e){
+    var m=(e&&e.message)||''+e;
+    if(/email_exists/.test(m)) $('newStaffErr').textContent=tr('Bu email allaqachon ro‘yxatda — quyidagi zaxira usul bilan biriktiring.','Этот email уже зарегистрирован — привяжите через резервный способ ниже.');
+    else if(/not_authorized/.test(m)) $('newStaffErr').textContent=tr('Ruxsat yo‘q.','Нет доступа.');
+    else if(/weak_password/.test(m)) $('newStaffErr').textContent=tr('Parol kamida 8 belgi bo‘lsin.','Пароль — минимум 8 символов.');
+    else $('newStaffErr').textContent=tr('Funksiya ishlamadi ("create-staff" deploy qilinganmi?). Zaxira usul: Supabase dashboard’da yarating va user_id bilan biriktiring.','Функция не сработала (задеплоен ли "create-staff"?). Резерв: создайте в Supabase dashboard и привяжите по user_id.');
+  }finally{ btn.disabled=false; }
+});
+
 $('assignBtn').addEventListener('click',async function(){
   $('staffErr').textContent=''; $('staffOk').textContent='';
   if(!current||current.__new){ $('staffErr').textContent=tr('Avval kompaniyani saqlang.','Сначала сохраните компанию.'); return; }
