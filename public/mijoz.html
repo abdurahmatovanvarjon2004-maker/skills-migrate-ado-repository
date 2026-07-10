@@ -206,160 +206,183 @@ input.name:focus{border-color:var(--mint)}
 
 </div>
 
-<script>
-(function(){
-  var INDUSTRIES={
-    clinic:{name:'Shifo klinikasi',place:'1-qavat · qabulxona',tw:'Sizning navbatingiz',ww:'Kassa',
-      svc:[{c:'A',n:'Terapevt qabuli',h:'Shifokor ko\u2018rigi'},{c:'B',n:'Laboratoriya',h:'Qon, tahlillar'},{c:'C',n:'Kassa / to\u2018lov',h:'To\u2018lov'}]},
-    bank:{name:'Milliy bank \u2014 Chilonzor',place:'Operatsion zal',tw:'Sizning taloningiz',ww:'Deraza',
-      svc:[{c:'A',n:'Omonat / karta',h:'Hisob, karta'},{c:'B',n:'Kredit',h:'Kredit, to\u2018lov'},{c:'C',n:'Valyuta',h:'Ayirboshlash'},{c:'D',n:'Yuridik shaxslar',h:'Biznes mijozlar'}]},
-    gov:{name:'Davlat xizmatlari markazi',place:'2-qavat',tw:'Sizning navbatingiz',ww:'Stol',
-      svc:[{c:'A',n:'Pasport / ID',h:'Hujjatlar'},{c:'B',n:'Kadastr',h:'Ko\u2018chmas mulk'},{c:'C',n:'FHDYo (nikoh)',h:'Fuqarolik holati'},{c:'D',n:'Notarius',h:'Tasdiqlash'}]},
-    salon:{name:'Style barbershop',place:'Asosiy zal',tw:'Sizning navbatingiz',ww:'Usta',
-      svc:[{c:'A',n:'Soch olish',h:'Erkaklar'},{c:'B',n:'Soqol / parvarish',h:'Beard care'},{c:'C',n:'Bolalar',h:'Bolalar sartaroshligi'}]},
-    auto:{name:'AutoService Pro',place:'Servis hududi',tw:'Sizning navbatingiz',ww:'Post',
-      svc:[{c:'A',n:'Moy almashtirish',h:'Xizmat'},{c:'B',n:'Diagnostika',h:'Tekshiruv'},{c:'C',n:'Yuvish',h:'Tozalash'}]}
-  };
-  var ORDER=['clinic','bank','gov','salon','auto'];
-  var BKEY='navbatsiz_branch';
-  function pickBranch(){
-    try{ var u=new URLSearchParams(location.search).get('b'); if(u&&INDUSTRIES[u])return u; }catch(e){}
-    try{ var b=localStorage.getItem(BKEY); if(b&&INDUSTRIES[b])return b; }catch(e){}
-    return 'clinic';
-  }
-  var branch=pickBranch();
-  function cfg(){return INDUSTRIES[branch];}
-  var KEY,MYKEY,svcName;
-  function setBranchVars(){ KEY='navbatsiz_q_'+branch; MYKEY='navbatsiz_my_'+branch; svcName={}; cfg().svc.forEach(function(s){svcName[s.c]=s.n;}); }
-  setBranchVars();
-  var $=function(id){return document.getElementById(id)};
+<script type="module">
+/* ============================================================
+ *  NAVBATSIZ mijoz — Supabase bilan (2-USTUVORLIK)
+ *  Mijoz login qilmaydi. Talon olgach, o'z holatini access_token
+ *  orqali kuzatadi (getTicketByToken) + navbatdagi o'rnini ommaviy
+ *  navbatdan (loadQueuePublic) hisoblaydi. Anon realtime RLS sabab
+ *  ishlamaydi — shu sabab davriy so'rov (poll) bilan yangilanadi.
+ * ============================================================ */
+import {
+  loadBranches, loadBranch, loadQueuePublic, takeTicket, getTicketByToken,
+  cancelTicket, DEFAULT_BRANCH_SLUG
+} from './navbatsiz-db.js';
 
-  function loadState(){ try{return JSON.parse(localStorage.getItem(KEY))||blank()}catch(e){return blank()} }
-  function blank(){ return {counters:{A:0,B:0,C:0},waiting:[],now:null,served:0,win:1}; }
-  function saveState(s){ try{localStorage.setItem(KEY,JSON.stringify(s));localStorage.setItem(KEY+'_ping',Date.now()+'');}catch(e){} }
-  function loadMy(){ try{return JSON.parse(localStorage.getItem(MYKEY))}catch(e){return null} }
-  function saveMy(t){ try{ t?localStorage.setItem(MYKEY,JSON.stringify(t)):localStorage.removeItem(MYKEY);}catch(e){} }
-
-  var picked=cfg().svc[0].c;
-  function renderServices(){
-    var grid=document.getElementById('svcGrid'); grid.innerHTML='';
-    picked=cfg().svc[0].c;
-    cfg().svc.forEach(function(s,i){
-      var b=document.createElement('button');
-      b.className='svc'+(i===0?' on':''); b.type='button'; b.dataset.svc=s.c;
-      b.innerHTML='<span class="svc-badge">'+s.c+'</span><span class="svc-t"><b>'+s.n+'</b><span>'+(s.h||'')+'</span></span><span class="rad"></span>';
-      b.onclick=function(){ grid.querySelectorAll('.svc').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); picked=s.c; };
-      grid.appendChild(b);
-    });
-  }
-  function fillBranchSel(){
-    var sel=document.getElementById('branchSel');
-    if(!sel.options.length){ ORDER.forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=INDUSTRIES[k].name; sel.appendChild(o); }); }
-    sel.value=branch;
-    sel.onchange=function(){ applyBranch(sel.value); };
-  }
-  function setPlace(){
-    document.getElementById('plName').textContent=cfg().name;
-    document.getElementById('plWhere').textContent=cfg().place;
-    document.getElementById('twLab').textContent=cfg().tw;
-  }
-  function applyBranch(nb){
-    if(!INDUSTRIES[nb]) return;
-    branch=nb; try{localStorage.setItem(BKEY,nb);}catch(e){}
-    setBranchVars(); fillBranchSel(); setPlace(); renderServices(); render();
-  }
-
-  function show(view){ document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')}); $(view).classList.add('on'); }
-
-  // ---- navbat olish ----
-  $('takeBtn').onclick=function(){
-    var s=loadState();
-    s.counters[picked]=(s.counters[picked]||0)+1;
-    var t={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7),
-            tag:picked+'-'+String(s.counters[picked]).padStart(3,'0'),
-            svc:picked, name:($('cName').value.trim()||''), t:Date.now() };
-    s.waiting.push(t);
-    saveState(s); saveMy(t);
-    render();
-  };
-
-  $('cancelBtn').onclick=function(){
-    var my=loadMy(); if(!my) { saveMy(null); show('pick'); return; }
-    var s=loadState();
-    s.waiting=s.waiting.filter(function(x){return x.tag!==my.tag;});
-    if(s.now && s.now.tag===my.tag) s.now=null;
-    saveState(s); saveMy(null); show('pick');
-  };
-  $('againBtn').onclick=function(){ saveMy(null); show('pick'); };
-
-  // ---- render ----
-  var wasCalled=false;
-  function render(){
-    var my=loadMy();
-    if(!my){ show('pick'); return; }
-    var s=loadState();
-
-    // holatni aniqlash
-    var idx=-1; for(var i=0;i<s.waiting.length;i++){ if(s.waiting[i].tag===my.tag){ idx=i; break; } }
-    var isNow = s.now && s.now.tag===my.tag;
-    var inQueue = idx>=0;
-
-    if(!isNow && !inQueue){ // chaqirilib bo'lingan / xizmat tugagan
-      show('done'); saveMy(null); return;
-    }
-
-    show('mine');
-    $('myNum').textContent=my.tag;
-    $('mySvc').textContent=svcName[my.svc]||'';
-    $('ticketTime').textContent='Talon olindi: '+new Date(my.t).toLocaleTimeString('uz',{hour:'2-digit',minute:'2-digit'});
-
-    if(isNow){
-      // CHAQIRILDI
-      $('mineCard').classList.add('called-card');
-      $('calledBanner').style.display='flex';
-      $('calledWin').textContent=cfg().ww+' '+(s.now.win||1)+' ga o\u2018ting';
-      $('waitingBlock').style.display='none';
-      $('calledBlock').style.display='block';
-      var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>Sizni chaqirishmoqda';
-      if(!wasCalled){ beep(); vibrate(); wasCalled=true; }
-    } else {
-      // KUTMOQDA
-      wasCalled=false;
-      $('mineCard').classList.remove('called-card');
-      $('calledBanner').style.display='none';
-      $('waitingBlock').style.display='block';
-      $('calledBlock').style.display='none';
-      $('statusPill').innerHTML='<i></i>Navbatda';
-      $('statusPill').style.background='rgba(52,245,197,.1)';
-      $('posAhead').textContent=idx;
-      $('posWait').textContent=Math.max(1,idx*4);
-      $('nowServing').textContent = s.now? s.now.tag : '—';
-      // progress: boshlang'ich navbat uzunligiga nisbatan
-      var total=idx + (s.now?1:0) + 1;
-      var pct = total>0 ? Math.round(((total-idx)/total)*100) : 10;
-      $('posProg').style.width=Math.max(8,Math.min(100,pct))+'%';
-    }
-  }
-
-  function beep(){
-    try{ var ac=window.__ac||(window.__ac=new(window.AudioContext||window.webkitAudioContext)());
-      [0,0.18].forEach(function(d){ var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);
-        o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,ac.currentTime+d);
-        g.gain.exponentialRampToValueAtTime(.14,ac.currentTime+d+.02);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d+.16);
-        o.start(ac.currentTime+d);o.stop(ac.currentTime+d+.16); }); }catch(e){}
-  }
-  function vibrate(){ try{ if(navigator.vibrate) navigator.vibrate([200,80,200]); }catch(e){} }
-
-  // ---- boshqa tab (admin/tablo) o'zgartirsa yangilanadi ----
-  window.addEventListener('storage',function(e){
-    if(e.key===BKEY){ if(e.newValue&&INDUSTRIES[e.newValue]&&e.newValue!==branch){ applyBranch(e.newValue); } return; }
-    if(e.key===KEY||e.key===KEY+'_ping'){ render(); }
-  });
-  setInterval(render,15000); // kutish daqiqasini yangilab turadi
-
-  fillBranchSel(); setPlace(); renderServices();
-  render();
+var $ = function(id){ return document.getElementById(id); };
+var BKEY='navbatsiz_branch';
+var slug = (function(){
+  try{ var u=new URLSearchParams(location.search).get('b'); if(u) return u; }catch(e){}
+  try{ var b=localStorage.getItem(BKEY); if(b) return b; }catch(e){}
+  return DEFAULT_BRANCH_SLUG;
 })();
+
+var branch=null, branchId=null, services=[], svcByCode={}, svcName={};
+var picked=null, pollTimer=null, wasCalled=false;
+
+function myKey(){ return 'navbatsiz_my_'+slug; }
+function loadMy(){ try{ return JSON.parse(localStorage.getItem(myKey())); }catch(e){ return null; } }
+function saveMy(t){ try{ t? localStorage.setItem(myKey(), JSON.stringify(t)) : localStorage.removeItem(myKey()); }catch(e){} }
+
+function show(view){ document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')}); $(view).classList.add('on'); }
+function twLabel(){ var w=(branch && branch.ticket_word) || 'Navbat'; return 'Sizning '+w.toLowerCase()+'ingiz'; }
+function friendlyErr(e){
+  var m=(e && e.message)||''+e;
+  if(/rate_limited/.test(m)) return 'Juda ko‘p urinish — biroz kuting va qayta urining.';
+  if(/service_not_found/.test(m)) return 'Xizmat topilmadi.';
+  return 'Aloqa xatosi. Internetni tekshirib, qayta urining.';
+}
+
+/* ---------- filial + xizmatlar ---------- */
+async function loadAll(){
+  try{
+    var res=await loadBranch(slug);
+    branch=res.branch; branchId=branch.id; services=res.services||[];
+  }catch(e){
+    // slug noto'g'ri bo'lsa — standartga qaytamiz
+    var res2=await loadBranch(DEFAULT_BRANCH_SLUG);
+    slug=DEFAULT_BRANCH_SLUG; branch=res2.branch; branchId=branch.id; services=res2.services||[];
+  }
+  svcByCode={}; svcName={};
+  services.forEach(function(s){ svcByCode[s.code]=s; svcName[s.code]=s.name; });
+  setPlace(); renderServices();
+  try{ fillBranchSel(await loadBranches()); }catch(e){}
+  // shu filialda oldingi talon bo'lsa — kuzatishni davom ettiramiz
+  if(loadMy()){ startTracking(); } else { stopTracking(); show('pick'); }
+}
+function setPlace(){
+  $('plName').textContent=branch.name;
+  $('plWhere').textContent=branch.place||'';
+  $('twLab').textContent=twLabel();
+}
+function renderServices(){
+  var grid=$('svcGrid'); grid.innerHTML='';
+  picked=services.length? services[0].code : null;
+  services.forEach(function(s,i){
+    var b=document.createElement('button');
+    b.className='svc'+(i===0?' on':''); b.type='button'; b.dataset.svc=s.code;
+    b.innerHTML='<span class="svc-badge">'+s.code+'</span><span class="svc-t"><b>'+s.name+'</b><span>'+(s.hint||'')+'</span></span><span class="rad"></span>';
+    b.onclick=function(){ grid.querySelectorAll('.svc').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); picked=s.code; };
+    grid.appendChild(b);
+  });
+}
+function fillBranchSel(branches){
+  var sel=$('branchSel'); sel.innerHTML='';
+  branches.forEach(function(b){ var o=document.createElement('option'); o.value=b.slug; o.textContent=b.name; sel.appendChild(o); });
+  sel.value=slug;
+  sel.onchange=function(){
+    slug=sel.value; try{ localStorage.setItem(BKEY, slug); }catch(e){}
+    loadAll();
+  };
+}
+
+/* ---------- talon olish ---------- */
+$('takeBtn').onclick=async function(){
+  if(!picked){ return; }
+  var svc=svcByCode[picked]; if(!svc) return;
+  var btn=$('takeBtn'); btn.disabled=true;
+  try{
+    var t=await takeTicket(svc.id, $('cName').value.trim());
+    saveMy({ id:t.id, token:t.token, tag:t.tag, svc:t.svc, t:t.t });
+    wasCalled=false;
+    startTracking();
+  }catch(e){ toast(friendlyErr(e)); }
+  finally{ btn.disabled=false; }
+};
+
+$('cancelBtn').onclick=async function(){
+  var my=loadMy();
+  if(my){ try{ await cancelTicket(my.id, my.token); }catch(e){} }
+  saveMy(null); stopTracking(); show('pick');
+};
+$('againBtn').onclick=function(){ saveMy(null); stopTracking(); show('pick'); };
+
+/* ---------- kuzatish (poll) ---------- */
+function startTracking(){ stopTracking(); poll(); pollTimer=setInterval(poll, 4000); }
+function stopTracking(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+
+async function poll(){
+  var my=loadMy(); if(!my){ stopTracking(); show('pick'); return; }
+  try{
+    var mt=await getTicketByToken(my.token);
+    var q=await loadQueuePublic(branchId);
+    renderMine(my, mt, q);
+  }catch(e){ /* tarmoq — keyingi urinishda tiklanadi */ }
+}
+
+function renderMine(my, mt, queue){
+  // talon topilmasa yoki yakunlangan/no_show — rahmat ekrani
+  if(!mt || mt.status==='done' || mt.status==='no_show'){ show('done'); saveMy(null); stopTracking(); return; }
+  if(mt.status==='cancelled'){ show('pick'); saveMy(null); stopTracking(); return; }
+
+  show('mine');
+  $('myNum').textContent=mt.tag;
+  $('mySvc').textContent=svcName[mt.svc]||'';
+  $('ticketTime').textContent='Talon olindi: '+new Date(my.t).toLocaleTimeString('uz',{hour:'2-digit',minute:'2-digit'});
+
+  var serving=queue.filter(function(t){return t.status==='serving';});
+  var nowTag = serving.length? serving.reduce(function(a,b){return b.t>a.t?b:a;}).tag : '—';
+
+  if(mt.status==='serving'){
+    // CHAQIRILDI
+    $('mineCard').classList.add('called-card');
+    $('calledBanner').style.display='flex';
+    $('calledWin').textContent=((branch&&branch.window_word)||'Oyna')+' '+(mt.win||1)+' ga o‘ting';
+    $('waitingBlock').style.display='none';
+    $('calledBlock').style.display='block';
+    var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>Sizni chaqirishmoqda';
+    if(!wasCalled){ beep(); vibrate(); wasCalled=true; }
+  } else {
+    // KUTMOQDA
+    wasCalled=false;
+    $('mineCard').classList.remove('called-card');
+    $('calledBanner').style.display='none';
+    $('waitingBlock').style.display='block';
+    $('calledBlock').style.display='none';
+    $('statusPill').innerHTML='<i></i>Navbatda'; $('statusPill').style.background='rgba(52,245,197,.1)';
+    var waiting=queue.filter(function(t){return t.status==='waiting';});
+    var idx=waiting.findIndex(function(t){return t.id===mt.id;});
+    var ahead=idx<0?0:idx;
+    $('posAhead').textContent=ahead;
+    $('posWait').textContent=Math.max(1, ahead*4);
+    $('nowServing').textContent=nowTag;
+    var total=ahead + (serving.length?1:0) + 1;
+    var pct= total>0 ? Math.round(((total-ahead)/total)*100) : 10;
+    $('posProg').style.width=Math.max(8,Math.min(100,pct))+'%';
+  }
+}
+
+/* ---------- ovoz / tebranish / toast ---------- */
+function beep(){
+  try{ var ac=window.__ac||(window.__ac=new(window.AudioContext||window.webkitAudioContext)());
+    [0,0.18].forEach(function(d){ var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);
+      o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,ac.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(.14,ac.currentTime+d+.02);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d+.16);
+      o.start(ac.currentTime+d);o.stop(ac.currentTime+d+.16); }); }catch(e){}
+}
+function vibrate(){ try{ if(navigator.vibrate) navigator.vibrate([200,80,200]); }catch(e){} }
+var tT;
+function toast(msg){
+  var el=document.getElementById('mToast');
+  if(!el){ el=document.createElement('div'); el.id='mToast';
+    el.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;background:rgba(12,24,38,.96);border:1px solid rgba(214,85,58,.5);border-radius:14px;padding:12px 18px;font-weight:600;font-size:13.5px;color:var(--ink);max-width:90%;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.5)';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(tT); tT=setTimeout(function(){ el.style.opacity='0'; el.style.transition='opacity .4s'; }, 3000);
+}
+
+loadAll();
 </script>
 </body>
 </html>
