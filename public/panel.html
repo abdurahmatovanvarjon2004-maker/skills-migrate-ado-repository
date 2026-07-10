@@ -319,280 +319,377 @@ kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid va
 
 <div id="toast"></div>
 
-<script>
-(function(){
-  var INDUSTRIES={
-    clinic:{name:'Shifo klinikasi',place:'1-qavat, qabulxona',tw:'Navbat',ww:'Kassa',
-      svc:[{c:'A',n:'Terapevt qabuli'},{c:'B',n:'Laboratoriya'},{c:'C',n:'Kassa / to\u2018lov'}]},
-    bank:{name:'Milliy bank \u2014 Chilonzor',place:'Operatsion zal',tw:'Talon',ww:'Deraza',
-      svc:[{c:'A',n:'Omonat / karta'},{c:'B',n:'Kredit'},{c:'C',n:'Valyuta'},{c:'D',n:'Yuridik shaxslar'}]},
-    gov:{name:'Davlat xizmatlari markazi',place:'2-qavat',tw:'Navbat',ww:'Stol',
-      svc:[{c:'A',n:'Pasport / ID'},{c:'B',n:'Kadastr'},{c:'C',n:'FHDYo (nikoh)'},{c:'D',n:'Notarius'}]},
-    salon:{name:'Style barbershop',place:'Asosiy zal',tw:'Navbat',ww:'Usta',
-      svc:[{c:'A',n:'Soch olish'},{c:'B',n:'Soqol / parvarish'},{c:'C',n:'Bolalar'}]},
-    auto:{name:'AutoService Pro',place:'Servis hududi',tw:'Navbat',ww:'Post',
-      svc:[{c:'A',n:'Moy almashtirish'},{c:'B',n:'Diagnostika'},{c:'C',n:'Yuvish'}]}
-  };
-  var ORDER=['clinic','bank','gov','salon','auto'];
-  var BKEY='navbatsiz_branch';
-  var branch=(function(){try{return localStorage.getItem(BKEY)||'clinic'}catch(e){return 'clinic'}})();
-  if(!INDUSTRIES[branch]) branch='clinic';
-  function cfg(){return INDUSTRIES[branch];}
-  var KEY,WW,svcName;
-  function setBranchVars(){ KEY='navbatsiz_q_'+branch; WW=cfg().ww; svcName={}; cfg().svc.forEach(function(s){svcName[s.c]=s.n;}); }
-  setBranchVars();
-  // ---- holat ----
-  function blank(){return {counters:{A:0,B:0,C:0},waiting:[],now:null,served:0,win:1};}
-  var state=load()||blank();
-  function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
-  function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} broadcast();}
-  function broadcast(){ // boshqa oynalar (tablo) yangilanishi uchun
-    try{localStorage.setItem(KEY+'_ping',Date.now()+'')}catch(e){}
-  }
-
-  // seed: agar bo'sh bo'lsa, namunaviy navbat
-  function seedIfEmpty(){
-    if(!state.waiting.length && !state.now && !state.served){
-      ['A','A','B','A','C','B','A'].forEach(function(s){ pushTicket(s,null,true); });
-    }
-  }
-  seedIfEmpty();
-
-  function pushTicket(svc,name,silent){
-    state.counters[svc]=(state.counters[svc]||0)+1;
-    var t={ id:Date.now()+Math.random(), tag:svc+'-'+String(state.counters[svc]).padStart(3,'0'),
-            svc:svc, name:name||'', t:Date.now() };
-    state.waiting.push(t);
-    if(!silent){ save(); render(); toast('Talon berildi: '+t.tag); }
-    return t;
-  }
-
-  // ---- amallar ----
-  function requireAuth(){ if(!window.__panelAuthed){ toast('Avval tizimga kiring'); return false; } return true; }
-  function callNext(){
-    if(!requireAuth()) return;
-    if(!state.waiting.length){ toast('Navbat bo‘sh'); return; }
-    if(state.now) state.served++;
-    state.now=state.waiting.shift();
-    state.now.win=state.win;
-    save(); render(); flashTV(); toast('Chaqirildi: '+state.now.tag+' \u2192 '+WW+' '+state.win);
-  }
-  function recall(){ if(!requireAuth()) return; if(state.now){ save(); flashTV(); toast('Qayta chaqirildi: '+state.now.tag);} }
-  function done(){ if(!requireAuth()) return; if(state.now){ state.served++; state.now=null; save(); render(); toast('Xizmat yakunlandi'); } }
-  function callSpecific(idx){
-    if(!requireAuth()) return;
-    if(state.now) state.served++;
-    state.now=state.waiting.splice(idx,1)[0]; state.now.win=state.win;
-    save(); render(); flashTV(); toast('Chaqirildi: '+state.now.tag+' \u2192 '+WW+' '+state.win);
-  }
-  function removeTicket(idx){ if(!requireAuth()) return; state.waiting.splice(idx,1); save(); render(); }
-
-  // ---- render ----
-  var $=function(id){return document.getElementById(id)};
-  function render(){
-    // now serving
-    $('nowNum').textContent = state.now? state.now.tag : '—';
-    $('nowWin').textContent = state.now? (WW+' '+(state.now.win||state.win)+(state.now.name?' · '+state.now.name:'')) : 'Navbatni boshlang';
-    $('servedCount').textContent = state.served+' ta qabul qilindi';
-    // waiting list
-    var wl=$('waitList'); wl.innerHTML='';
-    if(!state.waiting.length){ wl.innerHTML='<div class="empty">Navbat bo‘sh — yangi talon qo‘shing yoki QR-stend orqali mijozlar yoziladi.</div>'; }
-    state.waiting.forEach(function(t,i){
-      var row=document.createElement('div'); row.className='wrow'+(i===0?' next':'');
-      var mins=Math.max(0,Math.round((Date.now()-t.t)/60000));
-      row.innerHTML='<div class="wtag grad-text">'+t.tag+'</div>'+
-        '<div class="wmeta"><b>'+(t.name||svcName[t.svc])+'</b>'+(i===0?'keyingi · ':'')+mins+' daq kutmoqda</div>'+
-        '<div class="wact"><button class="icon-btn go" title="Shu raqamni chaqirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg></button>'+
-        '<button class="icon-btn del" title="O‘chirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
-      row.querySelector('.go').onclick=function(){ callSpecific(i); };
-      row.querySelector('.del').onclick=function(){ removeTicket(i); };
-      wl.appendChild(row);
-    });
-    $('waitCount').textContent=state.waiting.length;
-    // stat
-    $('stTotal').textContent=state.served;
-    $('stWait').textContent=state.waiting.length;
-    $('stAvg').textContent=avgWait();
-    renderTV();
-  }
-  function avgWait(){
-    if(!state.waiting.length) return 0;
-    var s=0; state.waiting.forEach(function(t){s+=(Date.now()-t.t)/60000;});
-    return Math.round(s/state.waiting.length);
-  }
-
-  // ---- TV ----
-  function renderTV(){
-    $('tvNum').textContent = state.now? state.now.tag : '—';
-    $('tvWin').innerHTML = state.now? (WW+' '+(state.now.win||1)) : '<span>kutilmoqda…</span>';
-    var nx=$('tvNext'); nx.innerHTML='';
-    var up=state.waiting.slice(0,4);
-    if(!up.length){ nx.innerHTML='<div class="tv-empty">Navbatda hech kim yo‘q</div>'; }
-    up.forEach(function(t){
-      var d=document.createElement('div'); d.className='tv-nrow';
-      d.innerHTML='<b class="grad-text">'+t.tag+'</b><span>'+(t.name||svcName[t.svc])+'</span>';
-      nx.appendChild(d);
-    });
-  }
-  function flashTV(){
-    var el=$('tvNow'); if(!el) return;
-    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
-    // ovozli signal (qisqa beep)
-    try{
-      var ac=window.__ac||(window.__ac=new (window.AudioContext||window.webkitAudioContext)());
-      var o=ac.createOscillator(),g=ac.createGain();
-      o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;
-      g.gain.setValueAtTime(.001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.15,ac.currentTime+.02);
-      g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.5);
-      o.start();o.stop(ac.currentTime+.5);
-    }catch(e){}
-  }
-
-  // ---- TV ochish/yopish ----
-  function openTV(){ $('tv').classList.add('on'); renderTV(); }
-  function closeTV(){ $('tv').classList.remove('on'); }
-  $('tvBtn').onclick=openTV; $('tvExit').onclick=closeTV;
-
-  // ---- clock ----
-  function tick(){ var d=new Date(); $('tvClock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-  tick(); setInterval(tick,10000); setInterval(render,30000); // kutish daqiqalarini yangilab turadi
-
-  // ---- tugmalar ----
-  $('callNext').onclick=callNext; $('recall').onclick=recall; $('done').onclick=done;
-  $('addBtn').onclick=function(){ if(!requireAuth()) return; pushTicket($('addSvc').value, $('addName').value.trim()); $('addName').value=''; };
-  $('addName').addEventListener('keydown',function(e){ if(e.key==='Enter'){$('addBtn').click();} });
-  function renderWins(){
-    var box=$('winChips'); box.innerHTML='';
-    for(var i=1;i<=3;i++){
-      var b=document.createElement('button');
-      b.className='win-chip'+(i===(state.win||1)?' on':''); b.textContent=WW+' '+i;
-      (function(n,btn){ btn.onclick=function(){ document.querySelectorAll('.win-chip').forEach(function(x){x.classList.remove('on')}); btn.classList.add('on'); state.win=n; save(); }; })(i,b);
-      box.appendChild(b);
-    }
-    $('winLabel').textContent=WW+':';
-  }
-  function renderSvcOptions(){
-    var sel=$('addSvc'); sel.innerHTML='';
-    cfg().svc.forEach(function(s){ var o=document.createElement('option'); o.value=s.c; o.textContent=s.c+' \u00b7 '+s.n; sel.appendChild(o); });
-  }
-  function fillBranchSel(){
-    var sel=$('branchSel');
-    if(!sel.options.length){ ORDER.forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=INDUSTRIES[k].name; sel.appendChild(o); }); }
-    sel.value=branch;
-    sel.onchange=function(){ applyBranch(sel.value); };
-  }
-  function setPlace(){ $('tvPlace').textContent=cfg().name+' \u00b7 '+cfg().place; }
-  function applyBranch(nb){
-    if(!INDUSTRIES[nb]) return;
-    branch=nb; try{localStorage.setItem(BKEY,nb);}catch(e){}
-    setBranchVars();
-    state=load()||blank(); state.win=state.win||1; seedIfEmpty();
-    fillBranchSel(); renderWins(); renderSvcOptions(); setPlace(); render();
-  }
-
-  // ---- tablar ----
-  document.querySelectorAll('.tab[data-view]').forEach(function(t){
-    t.onclick=function(){
-      document.querySelectorAll('.tab[data-view]').forEach(function(x){x.classList.remove('on')}); t.classList.add('on');
-      document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')});
-      $('view-'+t.dataset.view).classList.add('on');
-      if(t.dataset.view==='stat') drawChart();
-    };
-  });
-
-  // ---- klaviatura ----
-  document.addEventListener('keydown',function(e){
-    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
-    if(e.code==='Space'){ e.preventDefault(); callNext(); }
-    else if(e.key==='n'||e.key==='N'){ if(!requireAuth()) return; pushTicket($('addSvc').value,''); }
-    else if(e.key==='f'||e.key==='F'){ $('tv').classList.contains('on')?closeTV():openTV(); }
-    else if(e.key==='Escape'){ closeTV(); }
-  });
-
-  // ---- boshqa oyna bilan sinxron (tablo alohida tabda) ----
-  window.addEventListener('storage',function(e){
-    if(e.key===BKEY){ if(e.newValue&&INDUSTRIES[e.newValue]&&e.newValue!==branch){ applyBranch(e.newValue); } return; }
-    if(e.key===KEY||e.key===KEY+'_ping'){ var s=load(); if(s){ state=s; render(); } }
-  });
-
-  // ---- toast ----
-  var tT;
-  function toast(msg){ var el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(tT); tT=setTimeout(function(){el.classList.remove('show')},2200); }
-
-  // ---- namunaviy grafik ----
-  function drawChart(){
-    var data=[4,9,14,21,26,23,19,24,28,22,17,12];
-    var labels=['09','10','11','12','13','14','15','16','17','18','19','20'];
-    var svg=$('chart'); var W=700,H=240,pad=30, max=30;
-    var bw=(W-pad*2)/data.length;
-    var g='<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#37D9A0"/><stop offset="1" stop-color="#F5B63F" stop-opacity=".5"/></linearGradient></defs>';
-    for(var y=0;y<=3;y++){ var yy=pad+(H-pad*2)*(y/3); g+='<line x1="'+pad+'" y1="'+yy+'" x2="'+(W-pad)+'" y2="'+yy+'" stroke="rgba(148,193,255,.12)"/>'; g+='<text x="6" y="'+(yy+4)+'" fill="#8FA8A0" font-size="11">'+Math.round(max-max*(y/3))+'</text>'; }
-    data.forEach(function(v,i){
-      var bh=(H-pad*2)*(v/max), x=pad+i*bw+bw*0.22, w=bw*0.56, yy=H-pad-bh;
-      g+='<rect x="'+x+'" y="'+yy+'" width="'+w+'" height="'+bh+'" rx="5" fill="url(#bg)"/>';
-      g+='<text x="'+(x+w/2)+'" y="'+(H-pad+16)+'" fill="#8FA8A0" font-size="11" text-anchor="middle">'+labels[i]+'</text>';
-    });
-    svg.innerHTML=g;
-  }
-
-  fillBranchSel(); renderWins(); renderSvcOptions(); setPlace();
-  render();
-})();
-</script>
-
-<!-- ============ LOGIN-GATE / AUTH (Supabase) ============ -->
 <script type="module">
-import { getSession, onAuthChange, signIn, signOut } from './navbatsiz-db.js';
+/* ============================================================
+ *  NAVBATSIZ panel — Supabase bilan (2-USTUVORLIK)
+ *  - Login qilgan xodim FAQAT o'z filialini (staff jadvali) boshqaradi.
+ *  - Real-time: xodim subscribe() bilan (RLS ruxsat beradi); ochiq
+ *    TV-tablo (?view=tv, login'siz) esa loadQueuePublic'ni davriy
+ *    so'rov bilan yangilaydi (anon realtime RLS sabab talon o'zgarishini
+ *    ololmaydi).
+ * ============================================================ */
+import {
+  getSession, onAuthChange, signIn, signOut,
+  loadStaffBranch, loadBranch, loadWindows, loadTickets, loadQueuePublic, countDone,
+  callNext as dbCallNext, callTicket as dbCallTicket, finishTicket as dbFinish,
+  cancelTicket as dbCancel, takeTicket as dbTake,
+  subscribe, unsubscribe, DEFAULT_BRANCH_SLUG
+} from './navbatsiz-db.js';
 
+var $ = function(id){ return document.getElementById(id); };
 var params = new URLSearchParams(location.search);
-var tvOnly = params.get('view') === 'tv';
-var gateEl = document.getElementById('loginGate');
-var topBar = document.getElementById('topBar');
-var mainWrap = document.getElementById('mainWrap');
-var tvExit = document.querySelector('.tv-exit');
-window.__panelAuthed = false;
+var isTV = params.get('view') === 'tv';   // ochiq TV-tablo rejimi (login yo'q)
 
-function applyAuthState(session){
+// ---- holat ----
+var branch=null, services=[], windows=[1,2,3], svcById={}, svcByCode={}, svcName={};
+var branchId=null, WW='Oyna';
+var state={ list:[], served:0, win:1 };
+var channel=null, pollTimer=null, inited=false;
+
+// ---- toast ----
+var tT;
+function toast(msg){ var el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(tT); tT=setTimeout(function(){el.classList.remove('show')},2600); }
+
+// ---- ulanish holati (dot) ----
+function setLive(ok){
+  var d=document.querySelector('.top .dot'); if(!d) return;
+  d.style.background = ok? 'var(--mint)' : 'var(--red)';
+  d.style.boxShadow  = ok? '0 0 10px var(--mint)' : '0 0 10px var(--red)';
+  d.title = ok? 'Aloqa faol' : 'Aloqa uzildi — qayta urinilmoqda…';
+}
+
+/* ============================================================
+ *  AUTH GATE
+ * ============================================================ */
+window.__panelAuthed = false;
+function showLogin(){
+  $('loginGate').style.display='flex';
+  $('topBar').style.display='none';
+  $('mainWrap').style.display='none';
+  $('tv').classList.remove('on');
+}
+function showPanel(){
+  $('loginGate').style.display='none';
+  $('topBar').style.display='';
+  $('mainWrap').style.display='';
+}
+
+async function applyAuthState(session){
+  if(isTV) return;                       // TV rejimi auth'dan mustaqil
   window.__panelAuthed = !!session;
-  if (tvOnly){
-    // TV-tablo: login shart emas, faqat o'qiydi — boshqaruv UI'si butunlay yashirin.
-    gateEl.style.display = 'none';
-    topBar.style.display = 'none';
-    mainWrap.style.display = 'none';
-    if (tvExit) tvExit.style.display = 'none';
-    document.getElementById('tv').classList.add('on');
-    return;
-  }
-  if (session){
-    gateEl.style.display = 'none';
-    topBar.style.display = '';
-    mainWrap.style.display = '';
+  if(session){
+    showPanel();
+    if(!inited){ inited=true; await initPanel(); }
   } else {
-    gateEl.style.display = 'flex';
-    topBar.style.display = 'none';
-    mainWrap.style.display = 'none';
-    document.getElementById('tv').classList.remove('on');
+    if(inited){ teardown(); inited=false; }
+    showLogin();
   }
 }
 
-getSession().then(applyAuthState).catch(function(){ applyAuthState(null); });
-onAuthChange(applyAuthState);
-
-document.getElementById('loginForm').addEventListener('submit', function(e){
+// login form
+$('loginForm').addEventListener('submit', function(e){
   e.preventDefault();
-  var email = document.getElementById('loginEmail').value.trim();
-  var password = document.getElementById('loginPassword').value;
-  var errEl = document.getElementById('loginError');
-  var btn = e.target.querySelector('button[type=submit]');
-  errEl.textContent = '';
-  btn.disabled = true;
-  signIn(email, password)
-    .catch(function(){ errEl.textContent = 'Email yoki parol noto‘g‘ri, yoki aloqa xatosi.'; })
-    .then(function(){ btn.disabled = false; });
+  var email=$('loginEmail').value.trim(), password=$('loginPassword').value;
+  var errEl=$('loginError'), btn=e.target.querySelector('button[type=submit]');
+  errEl.textContent=''; btn.disabled=true;
+  signIn(email,password)
+    .catch(function(){ errEl.textContent='Email yoki parol noto‘g‘ri, yoki aloqa xatosi.'; })
+    .then(function(){ btn.disabled=false; });
+});
+var logoutBtn=$('logoutBtn'); if(logoutBtn) logoutBtn.addEventListener('click', function(){ signOut(); });
+
+/* ============================================================
+ *  INIT (xodim paneli)  /  INIT-TV (ochiq tablo)
+ * ============================================================ */
+function applyBranchMeta(b, svcs, wins){
+  branch=b; branchId=b.id; services=svcs||[]; WW=b.window_word||'Oyna';
+  svcById={}; svcByCode={}; svcName={};
+  services.forEach(function(s){ svcById[s.id]=s; svcByCode[s.code]=s; svcName[s.code]=s.name; });
+  windows = (wins && wins.length)? wins.map(function(w){return w.no;}) : [1,2,3];
+  state.win = windows[0] || 1;
+  // filial nomi top-bar select'ida (endi almashtirmaydi — faqat ko'rsatadi)
+  var sel=$('branchSel');
+  if(sel){ sel.innerHTML='<option>'+b.name+'</option>'; sel.value=b.name; sel.disabled=true; }
+  $('tvPlace').textContent=b.name+(b.place? ' · '+b.place : '');
+}
+
+async function initPanel(){
+  try{
+    var res=await loadStaffBranch();
+    if(!res){ toast('Sizga filial biriktirilmagan. Administrator bilan bog‘laning.'); return; }
+    applyBranchMeta(res.branch, res.services, await loadWindows(res.branch.id));
+    renderWins(); renderSvcOptions();
+    await refresh();
+    // real-time (xodim uchun RLS ruxsat beradi)
+    channel=subscribe(branchId, function(){ refresh(); }, function(status){
+      setLive(status==='SUBSCRIBED');
+    });
+  }catch(e){ console.error(e); toast('Yuklashda xatolik: '+ (e && e.message || e)); }
+}
+
+async function initTV(){
+  showPanelHiddenForTV();
+  try{
+    var slug = params.get('b') || DEFAULT_BRANCH_SLUG;
+    var res=await loadBranch(slug);
+    applyBranchMeta(res.branch, res.services, []);
+    await refresh();
+    // anon realtime RLS sabab ishlamaydi — davriy so'rov bilan yangilaymiz
+    pollTimer=setInterval(refresh, 4000);
+  }catch(e){ console.error(e); }
+}
+function showPanelHiddenForTV(){
+  $('loginGate').style.display='none';
+  $('topBar').style.display='none';
+  $('mainWrap').style.display='none';
+  var ex=document.querySelector('.tv-exit'); if(ex) ex.style.display='none';
+  $('tv').classList.add('on');
+}
+
+function teardown(){
+  if(channel){ unsubscribe(channel); channel=null; }
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  branchId=null; state.list=[]; state.served=0;
+}
+
+/* ============================================================
+ *  MA'LUMOTNI YANGILASH
+ * ============================================================ */
+async function refresh(){
+  if(!branchId) return;
+  try{
+    if(isTV){
+      state.list=await loadQueuePublic(branchId);
+    } else {
+      state.list=await loadTickets(branchId);
+      state.served=await countDone(branchId);
+    }
+    setLive(true); render();
+  }catch(e){ console.error(e); setLive(false); toast('Aloqa uzildi, qayta urinilmoqda…'); }
+}
+
+// ---- holatdan hosilalar ----
+function waitingList(){ return state.list.filter(function(t){return t.status==='waiting';}); }
+function servingList(){ return state.list.filter(function(t){return t.status==='serving';}); }
+function nowTicket(){
+  var serving=servingList();
+  if(!isTV){ return serving.find(function(t){return t.win===state.win;}) || null; }
+  if(!serving.length) return null;
+  // TV rejimi: eng so'nggi chaqirilganini (created_at bo'yicha) ko'rsatamiz
+  return serving.reduce(function(a,b){ return b.t>a.t? b : a; });
+}
+function label(t){ return t.name || svcName[t.svc] || t.svc || t.tag; }
+
+/* ============================================================
+ *  RENDER
+ * ============================================================ */
+function render(){
+  var now=nowTicket(), waiting=waitingList();
+  // now serving (admin)
+  if($('nowNum')){
+    $('nowNum').textContent = now? now.tag : '—';
+    $('nowWin').textContent = now? (WW+' '+(now.win||state.win)+(now.name?' · '+now.name:'')) : 'Navbatni boshlang';
+    $('servedCount').textContent = state.served+' ta qabul qilindi';
+  }
+  // waiting list
+  var wl=$('waitList');
+  if(wl){
+    wl.innerHTML='';
+    if(!waiting.length){ wl.innerHTML='<div class="empty">Navbat bo‘sh — yangi talon qo‘shing yoki QR-stend orqali mijozlar yoziladi.</div>'; }
+    waiting.forEach(function(t,i){
+      var row=document.createElement('div'); row.className='wrow'+(i===0?' next':'');
+      var mins=Math.max(0,Math.round((Date.now()-t.t)/60000));
+      row.innerHTML='<div class="wtag grad-text">'+t.tag+'</div>'+
+        '<div class="wmeta"><b>'+label(t)+'</b>'+(i===0?'keyingi · ':'')+mins+' daq kutmoqda</div>'+
+        '<div class="wact"><button class="icon-btn go" title="Shu raqamni chaqirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg></button>'+
+        '<button class="icon-btn del" title="O‘chirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
+      row.querySelector('.go').onclick=function(){ callSpecific(t.id); };
+      row.querySelector('.del').onclick=function(){ removeTicket(t.id); };
+      wl.appendChild(row);
+    });
+    $('waitCount').textContent=waiting.length;
+    $('stTotal').textContent=state.served;
+    $('stWait').textContent=waiting.length;
+    $('stAvg').textContent=avgWait(waiting);
+  }
+  renderTV(now, waiting);
+}
+function avgWait(waiting){
+  if(!waiting.length) return 0;
+  var s=0; waiting.forEach(function(t){ s+=(Date.now()-t.t)/60000; });
+  return Math.round(s/waiting.length);
+}
+
+function renderTV(now, waiting){
+  now = now || nowTicket(); waiting = waiting || waitingList();
+  if($('tvNum')){
+    $('tvNum').textContent = now? now.tag : '—';
+    $('tvWin').innerHTML = now? (WW+' '+(now.win||1)) : '<span>kutilmoqda…</span>';
+  }
+  var nx=$('tvNext'); if(!nx) return;
+  nx.innerHTML='';
+  var up=waiting.slice(0,4);
+  if(!up.length){ nx.innerHTML='<div class="tv-empty">Navbatda hech kim yo‘q</div>'; }
+  up.forEach(function(t){
+    var d=document.createElement('div'); d.className='tv-nrow';
+    d.innerHTML='<b class="grad-text">'+t.tag+'</b><span>'+label(t)+'</span>';
+    nx.appendChild(d);
+  });
+}
+function flashTV(){
+  var el=$('tvNow'); if(!el) return;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  try{
+    var ac=window.__ac||(window.__ac=new (window.AudioContext||window.webkitAudioContext)());
+    var o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;
+    g.gain.setValueAtTime(.001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.15,ac.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.5);
+    o.start();o.stop(ac.currentTime+.5);
+  }catch(e){}
+}
+
+/* ============================================================
+ *  AMALLAR (xodim) — barchasi DB RPC orqali
+ * ============================================================ */
+function requireAuth(){ if(!window.__panelAuthed){ toast('Avval tizimga kiring'); return false; } return true; }
+function friendlyErr(e){
+  var m=(e && e.message)||''+e;
+  if(/rate_limited/.test(m)) return 'Juda ko‘p urinish — biroz kuting.';
+  if(/not_authorized/.test(m)) return 'Ruxsat yo‘q.';
+  if(/service_not_found/.test(m)) return 'Xizmat topilmadi.';
+  return 'Amal bajarilmadi. Aloqani tekshiring.';
+}
+
+async function doCallNext(){
+  if(!requireAuth() || !branchId) return;
+  if(!waitingList().length){ toast('Navbat bo‘sh'); return; }
+  try{
+    var t=await dbCallNext(branchId, state.win);
+    await refresh();
+    if(t){ flashTV(); toast('Chaqirildi: '+t.tag+' → '+WW+' '+state.win); }
+    else toast('Navbat bo‘sh');
+  }catch(e){ toast(friendlyErr(e)); }
+}
+function recall(){
+  if(!requireAuth()) return;
+  var now=nowTicket();
+  if(now){ flashTV(); toast('Qayta chaqirildi: '+now.tag); }
+}
+async function doDone(){
+  if(!requireAuth()) return;
+  var now=nowTicket(); if(!now){ toast('Hozir xizmatda hech kim yo‘q'); return; }
+  try{ await dbFinish(now.id); await refresh(); toast('Xizmat yakunlandi'); }
+  catch(e){ toast(friendlyErr(e)); }
+}
+async function callSpecific(ticketId){
+  if(!requireAuth()) return;
+  try{
+    var t=await dbCallTicket(ticketId, state.win);
+    await refresh();
+    if(t){ flashTV(); toast('Chaqirildi: '+t.tag+' → '+WW+' '+state.win); }
+  }catch(e){ toast(friendlyErr(e)); }
+}
+async function removeTicket(ticketId){
+  if(!requireAuth()) return;
+  try{ await dbCancel(ticketId); await refresh(); }
+  catch(e){ toast(friendlyErr(e)); }
+}
+async function addTicket(){
+  if(!requireAuth()) return;
+  var code=$('addSvc').value, svc=svcByCode[code];
+  if(!svc){ toast('Xizmat tanlanmagan'); return; }
+  try{
+    var t=await dbTake(svc.id, $('addName').value.trim());
+    $('addName').value='';
+    await refresh();
+    if(t) toast('Talon berildi: '+t.tag);
+  }catch(e){ toast(friendlyErr(e)); }
+}
+
+/* ============================================================
+ *  UI: oynalar, xizmatlar, tablar, klaviatura, soat, grafik
+ * ============================================================ */
+function renderWins(){
+  var box=$('winChips'); if(!box) return; box.innerHTML='';
+  windows.forEach(function(n){
+    var b=document.createElement('button');
+    b.className='win-chip'+(n===state.win?' on':''); b.textContent=WW+' '+n;
+    b.onclick=function(){
+      document.querySelectorAll('.win-chip').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on'); state.win=n; render();
+    };
+    box.appendChild(b);
+  });
+  $('winLabel').textContent=WW+':';
+}
+function renderSvcOptions(){
+  var sel=$('addSvc'); if(!sel) return; sel.innerHTML='';
+  services.forEach(function(s){ var o=document.createElement('option'); o.value=s.code; o.textContent=s.code+' · '+s.name; sel.appendChild(o); });
+}
+
+// TV ochish/yopish
+function openTV(){ $('tv').classList.add('on'); renderTV(); }
+function closeTV(){ if(isTV) return; $('tv').classList.remove('on'); }
+if($('tvBtn')) $('tvBtn').onclick=openTV;
+if($('tvExit')) $('tvExit').onclick=closeTV;
+
+// soat
+function tick(){ var d=new Date(); $('tvClock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+tick(); setInterval(tick,10000);
+setInterval(function(){ if(branchId) render(); }, 30000); // kutish daqiqalarini yangilab turadi
+
+// tugmalar
+if($('callNext')) $('callNext').onclick=doCallNext;
+if($('recall'))   $('recall').onclick=recall;
+if($('done'))     $('done').onclick=doDone;
+if($('addBtn'))   $('addBtn').onclick=addTicket;
+if($('addName'))  $('addName').addEventListener('keydown',function(e){ if(e.key==='Enter'){ addTicket(); } });
+
+// tablar
+document.querySelectorAll('.tab[data-view]').forEach(function(t){
+  t.onclick=function(){
+    document.querySelectorAll('.tab[data-view]').forEach(function(x){x.classList.remove('on')}); t.classList.add('on');
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')});
+    $('view-'+t.dataset.view).classList.add('on');
+    if(t.dataset.view==='stat') drawChart();
+  };
 });
 
-var logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) logoutBtn.addEventListener('click', function(){ signOut(); });
+// klaviatura
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.code==='Space'){ e.preventDefault(); doCallNext(); }
+  else if(e.key==='n'||e.key==='N'){ addTicket(); }
+  else if(e.key==='f'||e.key==='F'){ $('tv').classList.contains('on')?closeTV():openTV(); }
+  else if(e.key==='Escape'){ closeTV(); }
+});
+
+// namunaviy grafik (statistika) — hozircha namunaviy ma'lumot
+function drawChart(){
+  var data=[4,9,14,21,26,23,19,24,28,22,17,12];
+  var labels=['09','10','11','12','13','14','15','16','17','18','19','20'];
+  var svg=$('chart'); if(!svg) return; var W=700,H=240,pad=30, max=30;
+  var bw=(W-pad*2)/data.length;
+  var g='<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#37D9A0"/><stop offset="1" stop-color="#F5B63F" stop-opacity=".5"/></linearGradient></defs>';
+  for(var y=0;y<=3;y++){ var yy=pad+(H-pad*2)*(y/3); g+='<line x1="'+pad+'" y1="'+yy+'" x2="'+(W-pad)+'" y2="'+yy+'" stroke="rgba(148,193,255,.12)"/>'; g+='<text x="6" y="'+(yy+4)+'" fill="#8FA8A0" font-size="11">'+Math.round(max-max*(y/3))+'</text>'; }
+  data.forEach(function(v,i){
+    var bh=(H-pad*2)*(v/max), x=pad+i*bw+bw*0.22, w=bw*0.56, yy=H-pad-bh;
+    g+='<rect x="'+x+'" y="'+yy+'" width="'+w+'" height="'+bh+'" rx="5" fill="url(#bg)"/>';
+    g+='<text x="'+(x+w/2)+'" y="'+(H-pad+16)+'" fill="#8FA8A0" font-size="11" text-anchor="middle">'+labels[i]+'</text>';
+  });
+  svg.innerHTML=g;
+}
+
+/* ============================================================
+ *  BOSHLASH
+ * ============================================================ */
+if(isTV){
+  initTV();
+} else {
+  getSession().then(applyAuthState).catch(function(){ applyAuthState(null); });
+  onAuthChange(applyAuthState);
+}
 </script>
 </body>
 </html>
