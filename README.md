@@ -9,10 +9,12 @@ bank, davlat xizmatlari, salon, avtoservis uchun universal).
 |------|----------|
 | `public/index.html` | Marketing sayt (UZ/RU, sohalar demo, ariza formasi) |
 | `public/panel.html` | Xodim admin-paneli + TV-tablo |
+| `public/admin.html` | Kompaniya onboarding + boshqaruv konsoli |
 | `public/mijoz.html` | Mijoz: navbat olish (mobil) |
 | `public/navbatsiz-db.js` | Supabase ulanish moduli (hali ulanmagan) |
 | `db/schema.sql` | Supabase baza sxemasi (multi-tenant) |
 | `docs/TASKS.md` | Ustuvorlik tartibidagi ish ro'yxati |
+| `docs/ONBOARDING.md` | Yangi kompaniyani ulash qo'llanmasi |
 | `CLAUDE.md` | Loyiha konteksti (Claude Code o'qiydi) |
 
 ## Tez boshlash (lokal)
@@ -68,3 +70,7 @@ Domen ulangach: `public/index.html` dagi `og:image` ni to'liq URL'ga o'zgartirin
 - [x] TV-tablo to'g'ridan-to'g'ri URL + to'liq ekran (`?view=tv&b=<slug>`)
 - [x] Mijoz navbatini boshqa qurilmadan tiklash (`?b=<slug>&t=<token>` havola)
 - [x] Tarmoq xatolarida foydalanuvchiga xabar (banner / ulanish nuqtasi)
+- [x] Kompaniya onboarding: rollar + boshqaruv RPC'lari (`db/schema.sql`)
+- [x] Onboarding + boshqaruv konsoli (`admin.html`)
+- [x] Har-kompaniya brendi (logo + rang) mijoz va TV'da
+- [x] Onboarding qo'llanmasi (`docs/ONBOARDING.md`)
