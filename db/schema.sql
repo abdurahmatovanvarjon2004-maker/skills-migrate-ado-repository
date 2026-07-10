@@ -67,9 +67,21 @@ update public.tickets set access_token = gen_random_uuid() where access_token is
 -- Qatorlar Supabase dashboard/SQL orqali qo'lda kiritiladi: xodim
 -- Authentication -> Users'da yaratilgach, uning user_id'si shu yerga
 -- tegishli branch_id bilan qo'shiladi.
+-- role: 'admin' = filial sozlamalarini tahrirlaydi; 'operator' = faqat navbat.
 create table if not exists public.staff (
   user_id      uuid primary key references auth.users(id) on delete cascade,
   branch_id    uuid not null references public.branches(id) on delete cascade,
+  role         text not null default 'operator',   -- 'admin' | 'operator'
+  created_at   timestamptz default now()
+);
+-- Eski o'rnatilgan bazalar uchun xavfsiz migratsiya:
+alter table public.staff add column if not exists role text not null default 'operator';
+
+-- ---------- 6. PLATFORMA ADMINLARI (yangi kompaniya ocha oladi) ----------
+-- Birinchi admin QO'LDA kiritiladi (docs/ONBOARDING.md'ga qarang):
+--   insert into platform_admins(user_id) values ('<sizning-auth-user-id>');
+create table if not exists public.platform_admins (
+  user_id      uuid primary key references auth.users(id) on delete cascade,
   created_at   timestamptz default now()
 );
 
@@ -78,6 +90,22 @@ create table if not exists public.staff (
 create or replace function public.current_staff_branch()
 returns uuid language sql stable security definer set search_path = public as $$
   select branch_id from public.staff where user_id = auth.uid()
+$$;
+
+-- Joriy foydalanuvchi platforma admini (yangi kompaniya ocha oladi)?
+create or replace function public.is_platform_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists(select 1 from public.platform_admins where user_id = auth.uid())
+$$;
+
+-- Joriy foydalanuvchi shu filialni boshqara oladi (platforma admini YOKI
+-- shu filialning 'admin' xodimi)?
+create or replace function public.can_manage_branch(p_branch uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select public.is_platform_admin() or exists(
+    select 1 from public.staff
+    where user_id = auth.uid() and branch_id = p_branch and role = 'admin'
+  )
 $$;
 
 -- ---------- take_ticket flood himoyasi ----------
@@ -233,6 +261,100 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================
+--  KOMPANIYA BOSHQARUVI (onboarding + sozlamalar)
+--  Barcha yozuvlar SECURITY DEFINER RPC orqali — jadvalga to'g'ridan-
+--  to'g'ri INSERT/UPDATE ochilmaydi; ruxsat funksiya ichida tekshiriladi.
+-- ============================================================
+
+-- Yangi kompaniya (filial) yaratish — FAQAT platforma admini.
+create or replace function public.create_branch(
+  p_name text, p_slug text, p_place text default '', p_industry text default 'other',
+  p_ticket_word text default 'Navbat', p_window_word text default 'Oyna',
+  p_brand_color text default '', p_logo_url text default ''
+) returns public.branches language plpgsql security definer set search_path = public as $$
+declare v_branch branches;
+begin
+  if not is_platform_admin() then raise exception 'not_authorized'; end if;
+  if coalesce(trim(p_name),'')='' or coalesce(trim(p_slug),'')='' then raise exception 'name_and_slug_required'; end if;
+  insert into branches(name, slug, place, industry, ticket_word, window_word, brand_color, logo_url)
+  values (trim(p_name), lower(trim(p_slug)), coalesce(p_place,''), coalesce(nullif(trim(p_industry),''),'other'),
+          coalesce(nullif(trim(p_ticket_word),''),'Navbat'), coalesce(nullif(trim(p_window_word),''),'Oyna'),
+          nullif(trim(p_brand_color),''), nullif(trim(p_logo_url),''))
+  returning * into v_branch;
+  return v_branch;
+end $$;
+
+-- Xizmat qo'shish/yangilash — filial admini yoki platforma admini.
+create or replace function public.upsert_service(
+  p_branch uuid, p_code text, p_name text, p_hint text default '', p_sort int default 0, p_active boolean default true
+) returns public.services language plpgsql security definer set search_path = public as $$
+declare v_service services;
+begin
+  if not can_manage_branch(p_branch) then raise exception 'not_authorized'; end if;
+  insert into services(branch_id, code, name, hint, sort, active)
+  values (p_branch, upper(trim(p_code)), trim(p_name), coalesce(p_hint,''), coalesce(p_sort,0), coalesce(p_active,true))
+  on conflict (branch_id, code) do update
+    set name=excluded.name, hint=excluded.hint, sort=excluded.sort, active=excluded.active
+  returning * into v_service;
+  return v_service;
+end $$;
+
+-- Oyna/stol qo'shish/yangilash — filial admini yoki platforma admini.
+create or replace function public.upsert_window(
+  p_branch uuid, p_no int, p_label text default '', p_active boolean default true
+) returns public.windows language plpgsql security definer set search_path = public as $$
+declare v_win windows;
+begin
+  if not can_manage_branch(p_branch) then raise exception 'not_authorized'; end if;
+  insert into windows(branch_id, no, label, active)
+  values (p_branch, p_no, coalesce(p_label,''), coalesce(p_active,true))
+  on conflict (branch_id, no) do update set label=excluded.label, active=excluded.active
+  returning * into v_win;
+  return v_win;
+end $$;
+
+-- Filial sozlamalari/brendini yangilash — filial admini yoki platforma admini.
+create or replace function public.update_branch_settings(
+  p_branch uuid, p_name text, p_place text, p_ticket_word text, p_window_word text,
+  p_brand_color text default '', p_logo_url text default '', p_active boolean default true
+) returns public.branches language plpgsql security definer set search_path = public as $$
+declare v_branch branches;
+begin
+  if not can_manage_branch(p_branch) then raise exception 'not_authorized'; end if;
+  update branches set
+    name = coalesce(nullif(trim(p_name),''), name),
+    place = coalesce(p_place, place),
+    ticket_word = coalesce(nullif(trim(p_ticket_word),''), ticket_word),
+    window_word = coalesce(nullif(trim(p_window_word),''), window_word),
+    brand_color = nullif(trim(p_brand_color),''),
+    logo_url = nullif(trim(p_logo_url),''),
+    active = coalesce(p_active, active)
+  where id = p_branch returning * into v_branch;
+  return v_branch;
+end $$;
+
+-- Xodimni filialga biriktirish (auth user oldindan yaratilgan bo'lishi kerak).
+-- Filial admini yoki platforma admini.
+create or replace function public.assign_staff(p_user uuid, p_branch uuid, p_role text default 'operator')
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not can_manage_branch(p_branch) then raise exception 'not_authorized'; end if;
+  insert into staff(user_id, branch_id, role)
+  values (p_user, p_branch, coalesce(nullif(trim(p_role),''),'operator'))
+  on conflict (user_id) do update set branch_id=excluded.branch_id, role=excluded.role;
+end $$;
+
+-- Joriy foydalanuvchi haqida qisqa ma'lumot (panel/admin UI uchun):
+-- platforma admini ekanmi, qaysi filial, qanday rol.
+create or replace function public.my_context()
+returns table(is_admin boolean, branch_id uuid, role text)
+language sql stable security definer set search_path = public as $$
+  select public.is_platform_admin(),
+         (select branch_id from staff where user_id = auth.uid()),
+         (select role from staff where user_id = auth.uid())
+$$;
+
+-- ============================================================
 --  RLS
 -- ============================================================
 alter table public.branches enable row level security;
@@ -240,6 +362,9 @@ alter table public.services enable row level security;
 alter table public.windows  enable row level security;
 alter table public.tickets  enable row level security;
 alter table public.staff    enable row level security;
+alter table public.platform_admins enable row level security;
+-- platform_admins'ga siyosat yo'q — faqat security definer funksiyalar
+-- (is_platform_admin) o'qiydi; hech kim to'g'ridan-to'g'ri o'qiy/yoza olmaydi.
 
 -- branches/services/windows'da shaxsiy ma'lumot yo'q (filial nomi,
 -- xizmat nomi, oyna raqami) — ommaviy o'qish xavfsiz, o'zgarishsiz qoladi.
@@ -295,6 +420,22 @@ grant execute on function public.take_ticket(uuid, text, int) to anon, authentic
 grant execute on function public.cancel_ticket(uuid, uuid)     to anon, authenticated;
 grant execute on function public.get_queue_public(uuid)        to anon, authenticated;
 grant execute on function public.get_ticket_by_token(uuid)     to anon, authenticated;
+
+-- Kompaniya boshqaruvi RPC'lari — faqat login qilgan foydalanuvchi
+-- (ruxsat funksiya ichida is_platform_admin/can_manage_branch bilan tekshiriladi).
+revoke execute on function public.create_branch(text,text,text,text,text,text,text,text) from public, anon, authenticated;
+revoke execute on function public.upsert_service(uuid,text,text,text,int,boolean)         from public, anon, authenticated;
+revoke execute on function public.upsert_window(uuid,int,text,boolean)                    from public, anon, authenticated;
+revoke execute on function public.update_branch_settings(uuid,text,text,text,text,text,text,boolean) from public, anon, authenticated;
+revoke execute on function public.assign_staff(uuid,uuid,text)                            from public, anon, authenticated;
+grant execute on function public.create_branch(text,text,text,text,text,text,text,text) to authenticated;
+grant execute on function public.upsert_service(uuid,text,text,text,int,boolean)         to authenticated;
+grant execute on function public.upsert_window(uuid,int,text,boolean)                    to authenticated;
+grant execute on function public.update_branch_settings(uuid,text,text,text,text,text,text,boolean) to authenticated;
+grant execute on function public.assign_staff(uuid,uuid,text)                            to authenticated;
+grant execute on function public.my_context()                                            to authenticated;
+grant execute on function public.is_platform_admin()                                     to authenticated;
+grant execute on function public.can_manage_branch(uuid)                                 to authenticated;
 
 -- ============================================================
 --  REALTIME
