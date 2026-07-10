@@ -74,3 +74,9 @@ Domen ulangach: `public/index.html` dagi `og:image` ni to'liq URL'ga o'zgartirin
 - [x] Onboarding + boshqaruv konsoli (`admin.html`)
 - [x] Har-kompaniya brendi (logo + rang) mijoz va TV'da
 - [x] Onboarding qo'llanmasi (`docs/ONBOARDING.md`)
+- [x] Landing'dan jonli demo havolalari + deploy qo'llanmasi (`docs/DEPLOY.md`)
+- [x] Panelda "Kelmadi" (no_show), real statistika, xizmatlar jonli yangilanishi
+- [x] Haqiqiy QR kodlar (TV'da mijoz havolasi, mijozda talon QR'i) — `public/qr.js`
+- [x] PWA: mijoz sahifasi telefonga o'rnatiladi, offline ochiladi
+- [x] Xodim akkauntini admin UI'dan yaratish (`supabase/functions/create-staff`)
+- [ ] Haqiqiy Supabase'da yakuniy smoke-test (DEPLOY.md bo'yicha)
