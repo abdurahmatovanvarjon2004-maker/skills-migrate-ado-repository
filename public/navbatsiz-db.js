@@ -156,9 +156,11 @@ export async function countDone(branchId) {
 /* ============================================================
  *  AMALLAR (RPC) — barchasi mapTicket bilan qaytaradi (yoki xato tashlaydi)
  * ============================================================ */
-// Talon olish (mijoz yoki panel qo'lda). Natija: yangi talon (token bilan).
-export async function takeTicket(serviceId, name) {
-  const { data, error } = await sb.rpc('take_ticket', { p_service: serviceId, p_name: name || '' });
+// Talon olish (mijoz yoki panel qo'lda). phone — ixtiyoriy (SMS uchun).
+// Natija: yangi talon (token bilan).
+export async function takeTicket(serviceId, name, phone) {
+  const { data, error } = await sb.rpc('take_ticket',
+    { p_service: serviceId, p_name: name || '', p_phone: phone || '' });
   if (error) throw error;
   return mapTicket(firstRow(data));
 }

@@ -169,6 +169,9 @@ input.name:focus{border-color:var(--mint)}
       <p class="label">Ismingiz (ixtiyoriy)</p>
       <input class="name" id="cName" placeholder="Chaqirilganda ekranda ko‘rinadi">
 
+      <p class="label">Telefon (ixtiyoriy — SMS orqali xabar olish uchun)</p>
+      <input class="name" id="cPhone" type="tel" inputmode="tel" placeholder="+998 90 123 45 67">
+
       <button class="btn btn-grad" id="takeBtn">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
         Navbat olish
@@ -257,6 +260,7 @@ var RU={
   "Navbat oling":"Возьмите очередь",
   "Jonli navbatda turmang — raqamli navbatingizni telefondan oling.":"Не стойте в живой очереди — берите цифровую очередь с телефона.",
   "Qaysi xizmat kerak?":"Какая услуга нужна?","Ismingiz (ixtiyoriy)":"Ваше имя (необязательно)",
+  "Telefon (ixtiyoriy — SMS orqali xabar olish uchun)":"Телефон (необязательно — для SMS-уведомления)",
   "Navbat olish":"Взять очередь",
   "Navbatingiz yaqinlashganda ushbu sahifa o‘zi yangilanadi. Sahifani yopmang yoki xatcho‘pga qo‘shing.":"Когда очередь подойдёт, страница обновится сама. Не закрывайте её или добавьте в закладки.",
   "Navbatingiz keldi!":"Ваша очередь подошла!",
@@ -419,7 +423,7 @@ $('takeBtn').onclick=async function(){
   var svc=svcByCode[picked]; if(!svc) return;
   var btn=$('takeBtn'); btn.disabled=true;
   try{
-    var t=await takeTicket(svc.id, $('cName').value.trim());
+    var t=await takeTicket(svc.id, $('cName').value.trim(), $('cPhone').value.trim());
     saveMy({ id:t.id, token:t.token, tag:t.tag, svc:t.svc, t:t.t });
     wasCalled=false;
     startTracking();

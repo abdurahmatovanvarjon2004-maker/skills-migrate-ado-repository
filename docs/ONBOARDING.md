@@ -159,6 +159,38 @@ push oladi. Bepul (SMS emas). O'rnatish:
 
 ---
 
+## SMS-xabar (`send-sms` Edge Function, Eskiz.uz) — ixtiyoriy
+
+Ilova/push'siz mijozlar ham xabar oladi (telefon raqami kiritsa). Push
+bilan bir xil webhook'dan ishlaydi. Eskiz.uz akkaunti kerak (pullik).
+
+1. **Eskiz.uz'da** akkaunt oching, `from` (sender) nomini tasdiqlating
+   (test uchun `4546` ishlaydi).
+2. **Secrets:**
+   ```bash
+   supabase secrets set \
+     ESKIZ_EMAIL=<eskiz-email> \
+     ESKIZ_PASSWORD=<eskiz-parol> \
+     ESKIZ_FROM=<tasdiqlangan-sender-yoki-4546>
+   ```
+   (Token funksiya ichida email/parol bilan avtomatik olinadi va
+   keshlanadi. Xohlasangiz `ESKIZ_TOKEN`ni to'g'ridan-to'g'ri bering.)
+3. **Deploy:**
+   ```bash
+   supabase functions deploy send-sms --no-verify-jwt
+   ```
+4. **Database Webhook:** push bilan bir xil (tickets Insert+Update) —
+   ikkinchi webhook sifatida `send-sms`ni qo'shing (yoki bittasini
+   ikkalasiga yo'naltiring).
+5. **Sinov:** `mijoz.html`da telefon kiritib talon oling → paneldan
+   chaqiring → SMS kelishi kerak.
+
+> Push ham, SMS ham mustaqil: birini yoki ikkalasini yoqishingiz mumkin.
+> Telefonsiz talon uchun SMS yuborilmaydi; kredensiallar berilmasa
+> funksiya jim o'tkazib yuboradi.
+
+---
+
 ## Rollar
 
 | Rol | Kim | Nima qila oladi |
