@@ -10,6 +10,11 @@
 const SUPABASE_URL = 'https://SIZNING-LOYIHA.supabase.co';
 const SUPABASE_ANON_KEY = 'SIZNING_ANON_KEY';
 
+// Web Push (ixtiyoriy): VAPID public key. Bo'sh/placeholder bo'lsa push
+// UI'si umuman ko'rinmaydi. Yaratish: npx web-push generate-vapid-keys
+// (public shu yerga, private -> Supabase secrets, docs/ONBOARDING.md).
+export const VAPID_PUBLIC_KEY = '';
+
 // Standart muassasa (branch) slug — mijoz sahifasi ?b= bermasa shu ochiladi.
 export const DEFAULT_BRANCH_SLUG = 'shifo-klinika';
 
@@ -105,6 +110,16 @@ export async function loadQueuePublic(branchId) {
   const { data, error } = await sb.rpc('get_queue_public', { p_branch: branchId });
   if (error) throw error;
   return (data || []).map(mapTicket);
+}
+
+// Mijoz push obunasini saqlash (talon token'i + brauzer PushSubscription).
+export async function savePushSubscription(token, sub) {
+  const j = sub.toJSON ? sub.toJSON() : sub;
+  const keys = j.keys || {};
+  const { error } = await sb.rpc('save_push_subscription', {
+    p_token: token, p_endpoint: j.endpoint, p_p256dh: keys.p256dh, p_auth: keys.auth
+  });
+  if (error) throw error;
 }
 
 // Mijoz o'z taloni (ism bilan) — faqat access_token orqali, login'siz.

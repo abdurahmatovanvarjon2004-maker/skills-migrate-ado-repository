@@ -125,6 +125,11 @@ input.name:focus{border-color:var(--mint)}
 .branch-sel option{background:#0E2429}
 .svc-badge{width:44px;height:44px;border-radius:12px;background:var(--grad);color:#04241D;display:grid;place-items:center;flex:0 0 44px;font-family:var(--disp);font-weight:700;font-size:20px}
 .tw-lab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:center;margin-bottom:2px}
+.pushrow{display:flex;align-items:center;gap:12px;background:rgba(52,245,197,.06);border:1px solid rgba(52,245,197,.25);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.pushrow-txt{flex:1;min-width:0}
+.pushrow-txt b{display:block;font-size:13.5px;margin-bottom:2px}
+.pushrow-txt span{font-size:12px;color:var(--muted);line-height:1.4;display:block}
+.pushrow.on{background:rgba(52,245,197,.1)}
 .recovery{margin-top:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .rec-lab{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px}
 .rec-row{display:flex;gap:8px}
@@ -207,6 +212,15 @@ input.name:focus{border-color:var(--mint)}
       </div>
 
       <div class="divider"></div>
+
+      <div class="pushrow" id="pushRow" style="display:none">
+        <div class="pushrow-txt">
+          <b>🔔 Push-xabar</b>
+          <span id="pushHint">Navbatingiz yaqinlashganda telefon o‘zi xabar beradi — sahifani yopsangiz ham.</span>
+        </div>
+        <button class="btn btn-glass" id="pushBtn" type="button" style="width:auto;padding:10px 16px;font-size:13.5px">Yoqish</button>
+      </div>
+
       <button class="btn btn-ghost" id="cancelBtn">Navbatni bekor qilish</button>
 
       <div class="recovery" id="recoveryBox" style="display:none">
@@ -249,6 +263,9 @@ var RU={
   "oldingizda":"перед вами","~ daqiqa":"~ минут","Hozir xizmatda:":"Сейчас обслуживается:",
   "Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating":"Покажите QR-код для подтверждения прихода",
   "Navbatni bekor qilish":"Отменить очередь",
+  "🔔 Push-xabar":"🔔 Push-уведомление",
+  "Navbatingiz yaqinlashganda telefon o‘zi xabar beradi — sahifani yopsangiz ham.":"Когда очередь подойдёт, телефон сам уведомит — даже если закроете страницу.",
+  "Yoqish":"Включить",
   "Boshqa qurilmadan ochish uchun havolani saqlang:":"Сохраните ссылку, чтобы открыть с другого устройства:","Nusxa olish":"Копировать","Nusxa olindi ✓":"Скопировано ✓",
   "Xizmat yakunlandi":"Обслуживание завершено","Bizni tanlaganingiz uchun rahmat! Sog‘ bo‘ling.":"Спасибо, что выбрали нас! Будьте здоровы.","Yangi navbat olish":"Взять новую очередь"
 };
@@ -294,7 +311,7 @@ var PH={"cName":"Появится на экране при вызове"};
  * ============================================================ */
 import {
   loadBranches, loadBranch, loadQueuePublic, takeTicket, getTicketByToken,
-  cancelTicket, DEFAULT_BRANCH_SLUG
+  cancelTicket, savePushSubscription, VAPID_PUBLIC_KEY, DEFAULT_BRANCH_SLUG
 } from './navbatsiz-db.js';
 
 var $ = function(id){ return document.getElementById(id); };
@@ -406,6 +423,8 @@ $('takeBtn').onclick=async function(){
     saveMy({ id:t.id, token:t.token, tag:t.tag, svc:t.svc, t:t.t });
     wasCalled=false;
     startTracking();
+    // Ruxsat allaqachon berilgan bo'lsa — jim obuna bo'lamiz (tugma bosmasdan).
+    if(pushSupported() && Notification.permission==='granted'){ subscribePush(t.token); }
   }catch(e){ toast(friendlyErr(e)); }
   finally{ btn.disabled=false; }
 };
@@ -432,6 +451,60 @@ async function poll(){
 }
 function netOk(){ var b=$('netBanner'); if(b) b.classList.remove('show'); }
 function netErr(){ var b=$('netBanner'); if(b){ b.textContent=tr('Aloqa uzildi, qayta urinilmoqda…','Соединение потеряно, повтор…'); b.classList.add('show'); } }
+
+/* ============================================================
+ *  PUSH-XABAR (Web Push) — sahifa yopiq bo'lsa ham xabar keladi
+ * ============================================================ */
+function pushSupported(){
+  return VAPID_PUBLIC_KEY && 'serviceWorker' in navigator &&
+         'PushManager' in window && 'Notification' in window;
+}
+function urlB64ToUint8(base64){
+  var pad='='.repeat((4-base64.length%4)%4);
+  var b=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');
+  var raw=atob(b), arr=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+// Push holatiga qarab "Mening navbatim"dagi qatorni yangilaydi.
+function renderPushRow(){
+  var row=$('pushRow'); if(!row) return;
+  if(!pushSupported()){ row.style.display='none'; return; }
+  row.style.display='flex';
+  var btn=$('pushBtn'), hint=$('pushHint');
+  if(Notification.permission==='granted'){
+    row.classList.add('on'); btn.style.display='none';
+    hint.textContent=tr('Push yoqilgan ✓ — navbatingiz yaqinlashganda xabar keladi.','Push включён ✓ — уведомим, когда очередь подойдёт.');
+  } else if(Notification.permission==='denied'){
+    row.classList.remove('on'); btn.style.display='none';
+    hint.textContent=tr('Push bloklangan. Brauzer sozlamalaridan ruxsat bering.','Push заблокирован. Разрешите в настройках браузера.');
+  } else {
+    row.classList.remove('on'); btn.style.display='';
+  }
+}
+async function subscribePush(token){
+  if(!pushSupported() || !token) return false;
+  try{
+    var reg=await navigator.serviceWorker.ready;
+    var sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({ userVisibleOnly:true,
+        applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY) });
+    }
+    await savePushSubscription(token, sub);
+    renderPushRow();
+    return true;
+  }catch(e){ console.warn('push:', e); renderPushRow(); return false; }
+}
+if($('pushBtn')) $('pushBtn').onclick=async function(){
+  var my=loadMy(); if(!my) return;
+  var perm=await Notification.requestPermission();
+  renderPushRow();
+  if(perm==='granted'){
+    var ok=await subscribePush(my.token);
+    toast(ok? tr('Push yoqildi','Push включён') : tr('Push yoqilmadi','Push не включён'));
+  }
+};
 
 // Chaqirilgan ekranidagi HAQIQIY QR: talon tiklash havolasi — xodim skan
 // qilsa mijozning talonini (holati bilan) ko'radi. Token bo'yicha keshlanadi
@@ -471,7 +544,7 @@ function renderMine(my, mt, queue){
   if(mt.status==='cancelled'){ show('pick'); saveMy(null); stopTracking(); return; }
 
   show('mine');
-  setupRecovery(my);
+  setupRecovery(my); renderPushRow();
   $('myNum').textContent=mt.tag;
   $('mySvc').textContent=svcName[mt.svc]||'';
   $('ticketTime').textContent=tr('Talon olindi: ','Талон получен: ')+new Date(my.t).toLocaleTimeString(LANG==='ru'?'ru':'uz',{hour:'2-digit',minute:'2-digit'});
