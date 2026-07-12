@@ -117,6 +117,48 @@ platforma admini yoki shu filialning 'admin'i akkaunt yarata oladi.
 
 ---
 
+## Push-xabar (`send-push` Edge Function) — ixtiyoriy, lekin tavsiya
+
+Mijoz sahifani yopsa ham "navbatingiz yaqinlashdi" / "chaqirildingiz"
+push oladi. Bepul (SMS emas). O'rnatish:
+
+1. **VAPID kalitlar** (bir marta):
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+   - `Public Key` → `public/navbatsiz-db.js` dagi `VAPID_PUBLIC_KEY`.
+   - `Private Key` → Supabase secret (quyida).
+
+2. **Secrets** (Supabase loyiha uchun):
+   ```bash
+   supabase secrets set \
+     VAPID_PUBLIC_KEY=<public> \
+     VAPID_PRIVATE_KEY=<private> \
+     VAPID_SUBJECT=mailto:admin@navbatsiz.uz \
+     SITE_URL=https://<sizning-domeningiz>
+   ```
+   (`SITE_URL` — push havolasidagi domen; Netlify domeningiz.)
+
+3. **Deploy** (webhook JWT yubormaydi — `--no-verify-jwt`):
+   ```bash
+   supabase functions deploy send-push --no-verify-jwt
+   ```
+
+4. **Database Webhook** (Supabase dashboard → Database → Webhooks):
+   - Nom: `tickets-push`
+   - Jadval: `public.tickets`, hodisalar: **Insert** + **Update**
+   - Turi: **Supabase Edge Functions** → `send-push`
+   - (Webhook faqat `branch_id`ni beradi; funksiya navbatni O'ZI qayta
+     o'qiydi, shuning uchun payload'ga ishonmaydi — xavfsiz.)
+
+5. **Sinov:** telefonda `mijoz.html?b=<slug>` → talon oling → "🔔 Yoqish"
+   → sahifani yoping → paneldan chaqiring → push kelishi kerak.
+
+> `VAPID_PUBLIC_KEY` bo'sh bo'lsa mijozda push UI umuman ko'rinmaydi —
+> tizim push'siz ham to'liq ishlaydi (ochiq sahifa poll + beep bilan).
+
+---
+
 ## Rollar
 
 | Rol | Kim | Nima qila oladi |

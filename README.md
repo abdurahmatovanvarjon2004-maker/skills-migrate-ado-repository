@@ -79,4 +79,5 @@ Domen ulangach: `public/index.html` dagi `og:image` ni to'liq URL'ga o'zgartirin
 - [x] Haqiqiy QR kodlar (TV'da mijoz havolasi, mijozda talon QR'i) — `public/qr.js`
 - [x] PWA: mijoz sahifasi telefonga o'rnatiladi, offline ochiladi
 - [x] Xodim akkauntini admin UI'dan yaratish (`supabase/functions/create-staff`)
+- [x] Push-xabar: sahifa yopiq bo'lsa ham "navbatingiz yaqinlashdi/chaqirildingiz" (`supabase/functions/send-push` + Web Push)
 - [ ] Haqiqiy Supabase'da yakuniy smoke-test (DEPLOY.md bo'yicha)
