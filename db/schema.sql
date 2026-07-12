@@ -63,6 +63,27 @@ create index if not exists tickets_branch_status_idx on public.tickets(branch_id
 alter table public.tickets add column if not exists access_token uuid default gen_random_uuid();
 update public.tickets set access_token = gen_random_uuid() where access_token is null;
 
+-- ---------- 4b. PUSH OBUNALARI (Web Push) ----------
+-- Mijoz talon olganda push'ga rozilik bersa — brauzer obunasi shu yerga
+-- saqlanadi. notified_* bayroqlari bir xil xabar ikki marta ketmasligi
+-- uchun (webhook har talon o'zgarishida otiladi — idempotentlik shart).
+create table if not exists public.push_subscriptions (
+  id              uuid primary key default gen_random_uuid(),
+  ticket_id       uuid not null references public.tickets(id) on delete cascade,
+  endpoint        text not null,
+  p256dh          text not null,
+  auth            text not null,
+  notified_near   boolean default false,   -- "navbatingiz yaqinlashdi" yuborildimi
+  notified_called boolean default false,   -- "chaqirildingiz" yuborildimi
+  created_at      timestamptz default now(),
+  unique (ticket_id, endpoint)
+);
+create index if not exists push_subs_ticket_idx on public.push_subscriptions(ticket_id);
+-- RLS yoqilgan, SIYOSAT YO'Q (take_ticket_log uslubi) — faqat security
+-- definer RPC (save_push_subscription) va service-role (send-push Edge
+-- Function) kiradi; anon/authenticated to'g'ridan-to'g'ri o'qiy/yoza olmaydi.
+alter table public.push_subscriptions enable row level security;
+
 -- ---------- 5. XODIMLAR (auth.uid() -> filial bog'lanishi) ----------
 -- Qatorlar Supabase dashboard/SQL orqali qo'lda kiritiladi: xodim
 -- Authentication -> Users'da yaratilgach, uning user_id'si shu yerga
@@ -260,6 +281,26 @@ language sql stable security definer set search_path = public as $$
   select * from public.tickets where access_token = p_token
 $$;
 
+-- Mijoz push obunasini saqlash (login'siz — o'z access_token'i orqali).
+-- Faqat faol (waiting/serving) talonga ruxsat; yakunlangan/bekor bo'lgan
+-- talon uchun obuna qabul qilinmaydi. Bir talon + endpoint -> upsert.
+create or replace function public.save_push_subscription(
+  p_token uuid, p_endpoint text, p_p256dh text, p_auth text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_ticket uuid;
+begin
+  select id into v_ticket from tickets
+    where access_token = p_token and status in ('waiting','serving');
+  if v_ticket is null then raise exception 'not_authorized'; end if;
+  if coalesce(p_endpoint,'')='' or coalesce(p_p256dh,'')='' or coalesce(p_auth,'')='' then
+    raise exception 'missing_fields';
+  end if;
+  insert into push_subscriptions(ticket_id, endpoint, p256dh, auth)
+  values (v_ticket, p_endpoint, p_p256dh, p_auth)
+  on conflict (ticket_id, endpoint) do update
+    set p256dh=excluded.p256dh, auth=excluded.auth;
+end $$;
+
 -- ============================================================
 --  KOMPANIYA BOSHQARUVI (onboarding + sozlamalar)
 --  Barcha yozuvlar SECURITY DEFINER RPC orqali — jadvalga to'g'ridan-
@@ -420,6 +461,8 @@ grant execute on function public.take_ticket(uuid, text, int) to anon, authentic
 grant execute on function public.cancel_ticket(uuid, uuid)     to anon, authenticated;
 grant execute on function public.get_queue_public(uuid)        to anon, authenticated;
 grant execute on function public.get_ticket_by_token(uuid)     to anon, authenticated;
+revoke execute on function public.save_push_subscription(uuid,text,text,text) from public, anon, authenticated;
+grant  execute on function public.save_push_subscription(uuid,text,text,text) to anon, authenticated;
 
 -- Kompaniya boshqaruvi RPC'lari — faqat login qilgan foydalanuvchi
 -- (ruxsat funksiya ichida is_platform_admin/can_manage_branch bilan tekshiriladi).
