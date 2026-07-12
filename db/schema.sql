@@ -62,6 +62,11 @@ create index if not exists tickets_branch_status_idx on public.tickets(branch_id
 -- Eski (access_token'siz) o'rnatilgan bazalar uchun xavfsiz migratsiya:
 alter table public.tickets add column if not exists access_token uuid default gen_random_uuid();
 update public.tickets set access_token = gen_random_uuid() where access_token is null;
+-- SMS xabari uchun (ixtiyoriy): telefon + yuborilgan-belgi (idempotentlik).
+-- sms_near_at / sms_called_at null = hali yuborilmagan.
+alter table public.tickets add column if not exists phone text default '';
+alter table public.tickets add column if not exists sms_near_at timestamptz;
+alter table public.tickets add column if not exists sms_called_at timestamptz;
 
 -- ---------- 4b. PUSH OBUNALARI (Web Push) ----------
 -- Mijoz talon olganda push'ga rozilik bersa — brauzer obunasi shu yerga
@@ -147,10 +152,13 @@ alter table public.take_ticket_log enable row level security;
 -- ============================================================
 --  RPC FUNKSIYALAR
 -- ============================================================
-create or replace function public.take_ticket(p_service uuid, p_name text default '', p_priority int default 0)
+-- Eski 3-argumentli imzoni olib tashlaymiz — aks holda p_phone qo'shilgach
+-- "create or replace" uni almashtirmay, yonma-yon eski overload qolardi.
+drop function if exists public.take_ticket(uuid, text, int);
+create or replace function public.take_ticket(p_service uuid, p_name text default '', p_priority int default 0, p_phone text default '')
 returns public.tickets language plpgsql security definer set search_path = public as $$
 declare
-  v_service services; v_num int; v_ticket tickets;
+  v_service services; v_num int; v_ticket tickets; v_phone text;
   v_key text; v_recent int;
   c_limit constant int := 5;               -- 1 daqiqada shu manbadan ruxsat etilgan eng ko'p talon
   c_window constant interval := interval '1 minute';
@@ -174,14 +182,19 @@ begin
   end if;
   insert into take_ticket_log(key) values (v_key);
 
+  -- Telefonni faqat raqamlar sifatida saqlaymiz (+ va probellarni tashlab).
+  -- Bo'sh yoki qisqa bo'lsa telefon saqlanmaydi (SMS ixtiyoriy).
+  v_phone := regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g');
+  if length(v_phone) < 9 then v_phone := ''; end if;
+
   select * into v_service from services where id = p_service and active for update;
   if not found then raise exception 'service_not_found'; end if;
   v_num := v_service.counter + 1;
   update services set counter = v_num where id = p_service;
-  insert into tickets(branch_id, service_id, tag, name, status, priority)
+  insert into tickets(branch_id, service_id, tag, name, status, priority, phone)
   values (v_service.branch_id, v_service.id,
           v_service.code || '-' || lpad(v_num::text, 3, '0'),
-          coalesce(nullif(trim(p_name), ''), ''), 'waiting', greatest(0, p_priority))
+          coalesce(nullif(trim(p_name), ''), ''), 'waiting', greatest(0, p_priority), v_phone)
   returning * into v_ticket;
   return v_ticket;
 end $$;
@@ -445,7 +458,7 @@ revoke execute on function public.call_next(uuid, int)         from public, anon
 revoke execute on function public.call_ticket(uuid, int)       from public, anon, authenticated;
 revoke execute on function public.finish_ticket(uuid)          from public, anon, authenticated;
 revoke execute on function public.noshow_ticket(uuid)          from public, anon, authenticated;
-revoke execute on function public.take_ticket(uuid, text, int) from public, anon, authenticated;
+revoke execute on function public.take_ticket(uuid, text, int, text) from public, anon, authenticated;
 revoke execute on function public.cancel_ticket(uuid, uuid)    from public, anon, authenticated;
 revoke execute on function public.get_queue_public(uuid)       from public, anon, authenticated;
 revoke execute on function public.get_ticket_by_token(uuid)    from public, anon, authenticated;
@@ -457,7 +470,7 @@ grant execute on function public.finish_ticket(uuid)    to authenticated;
 grant execute on function public.noshow_ticket(uuid)    to authenticated;
 
 -- Login talab qilmaydigan (mijoz, TV-tablo) amallar:
-grant execute on function public.take_ticket(uuid, text, int) to anon, authenticated;
+grant execute on function public.take_ticket(uuid, text, int, text) to anon, authenticated;
 grant execute on function public.cancel_ticket(uuid, uuid)     to anon, authenticated;
 grant execute on function public.get_queue_public(uuid)        to anon, authenticated;
 grant execute on function public.get_ticket_by_token(uuid)     to anon, authenticated;
