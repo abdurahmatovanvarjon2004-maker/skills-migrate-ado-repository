@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Navbatsiz — navbat olish</title>
+<meta name="theme-color" content="#08181B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23F7C948'/%3E%3Cstop offset='.55' stop-color='%23F5A83B'/%3E%3Cstop offset='1' stop-color='%23E58E2F'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M17 16a6 6 0 016-6h18a6 6 0 016 6v32a6 6 0 01-6 6H23a6 6 0 01-6-6V16zm0 10.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zm30 0a5.5 5.5 0 100 11 5.5 5.5 0 000-11z'/%3E%3Cpath stroke='%2304241D' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round' d='M26 23l8.5 9-8.5 9M36 23l8.5 9-8.5 9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08181B;--card:#0E2429;--line:rgba(183,214,203,.12);--line-2:rgba(183,214,203,.20);
+  --ink:#EDF5F1;--muted:#8FA8A0;--mint:#37D9A0;--cyan:#F5B63F;--violet:#177E76;--amber:#F5B63F;
+  --grad:linear-gradient(115deg,#F7C948 0%,#F5A83B 55%,#E58E2F 100%);
+  --brand:#37D9A0;   /* kompaniya brend rangi — applyBranding() o'zgartiradi */
+  --disp:'Unbounded',ui-sans-serif,system-ui,sans-serif;--body:'Golos Text',ui-sans-serif,system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+}
+.brand .mk img{width:100%;height:100%;object-fit:cover;border-radius:9px;display:block}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);color:var(--ink);min-height:100vh;font-size:16px;
+  background:
+   radial-gradient(600px 420px at 88% -8%, rgba(34,211,238,.13), transparent 62%),
+   radial-gradient(600px 480px at -10% 108%, rgba(139,124,255,.12), transparent 60%),var(--bg);
+  display:flex;flex-direction:column;align-items:center;padding:22px 18px calc(28px + env(safe-area-inset-bottom))}
+button{font-family:inherit;cursor:pointer}
+::selection{background:rgba(52,245,197,.25)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono);letter-spacing:.01em}
+:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.shell{width:100%;max-width:440px;display:flex;flex-direction:column;gap:16px}
+
+/* header */
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:18px}
+.brand .mk{width:32px;height:32px;border-radius:9px;background:var(--grad);display:grid;place-items:center}
+.brand .mk svg{width:18px;height:18px}
+.place{font-size:12.5px;color:var(--muted);font-weight:600;text-align:right;line-height:1.3}
+.place b{color:var(--ink);display:block}
+
+/* card */
+.card{border-radius:22px;padding:22px;background:linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(155deg,rgba(52,245,197,.3),rgba(148,193,255,.07) 45%,rgba(139,124,255,.26)) border-box;
+  border:1px solid transparent;box-shadow:0 24px 56px rgba(0,0,0,.42)}
+.title{font-family:var(--disp);font-weight:700;font-size:20px;margin-bottom:4px}
+.desc{color:var(--muted);font-size:14px;margin-bottom:18px}
+.view{display:none}.view.on{display:block}
+
+/* service picker */
+.label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:0 0 9px}
+.svc-grid{display:grid;gap:10px;margin-bottom:18px}
+.svc{display:flex;align-items:center;gap:14px;padding:15px;border-radius:16px;text-align:left;width:100%;
+  background:rgba(255,255,255,.03);border:1.5px solid var(--line-2);color:var(--ink);transition:.15s}
+.svc:hover{background:rgba(255,255,255,.06)}
+.svc.on{border-color:var(--mint);background:rgba(52,245,197,.08)}
+.svc-ic{width:44px;height:44px;border-radius:12px;background:rgba(52,245,197,.1);border:1px solid rgba(52,245,197,.25);display:grid;place-items:center;flex:0 0 44px}
+.svc-ic svg{width:22px;height:22px;stroke:var(--mint)}
+.svc-t b{display:block;font-weight:700;font-size:15.5px}
+.svc-t span{font-size:12.5px;color:var(--muted)}
+.svc .rad{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--line-2);flex:0 0 22px;display:grid;place-items:center}
+.svc.on .rad{border-color:var(--mint)}
+.svc.on .rad::after{content:"";width:11px;height:11px;border-radius:50%;background:var(--grad)}
+
+input.name{width:100%;background:rgba(255,255,255,.04);border:1.5px solid var(--line-2);border-radius:14px;
+  padding:14px 15px;color:var(--ink);font-family:inherit;font-size:15px;outline:none;margin-bottom:16px}
+input.name:focus{border-color:var(--mint)}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;font-weight:700;font-size:16px;
+  padding:16px;border-radius:15px;border:1px solid transparent;transition:transform .14s,box-shadow .14s,background .14s}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn svg{width:19px;height:19px}
+.btn-grad{background:var(--grad);color:#04241D;box-shadow:0 12px 32px rgba(34,211,238,.28)}
+.btn-grad:hover{box-shadow:0 16px 42px rgba(52,245,197,.42)}
+.btn-glass{background:rgba(255,255,255,.05);border-color:var(--line-2);color:var(--ink)}
+.btn-glass:hover{background:rgba(255,255,255,.1)}
+.btn-ghost{background:none;color:var(--muted);border-color:var(--line-2)}
+.btn-ghost:hover{color:var(--ink)}
+
+/* ticket screen */
+.ticket-top{text-align:center;margin-bottom:6px}
+.status-pill{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+  background:rgba(52,245,197,.1);border:1px solid rgba(52,245,197,.3);color:var(--brand);border-radius:999px;padding:7px 15px;margin-bottom:16px}
+.status-pill i{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 10px var(--brand);animation:pulse 1.7s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.big-num{font-family:var(--mono);font-weight:600;font-size:72px;line-height:1;letter-spacing:.01em;text-align:center;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.svc-name{text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
+.divider{height:1px;background:var(--line);margin:20px 0}
+
+.pos-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.pos-box{text-align:center;flex:1}
+.pos-box b{display:block;font-family:var(--mono);font-weight:600;font-size:29px}
+.pos-box span{font-size:12px;color:var(--muted)}
+.pos-sep{width:1px;height:36px;background:var(--line)}
+.prog{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:8px}
+.prog i{display:block;height:100%;border-radius:99px;background:var(--grad);width:10%;transition:width .5s ease}
+.now-serving{text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px}
+.now-serving b{color:var(--ink);font-family:var(--mono);font-weight:600}
+
+/* called highlight */
+.called-card{border-color:rgba(52,245,197,.5)!important;
+  background:linear-gradient(var(--card),var(--card)) padding-box,var(--grad) border-box!important;
+  animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 24px 70px rgba(52,245,197,.3)}}
+.called-banner{display:flex;align-items:center;gap:12px;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35);
+  border-radius:16px;padding:14px;margin-bottom:18px}
+.called-banner .ic{width:40px;height:40px;border-radius:11px;background:var(--grad);display:grid;place-items:center;flex:0 0 40px}
+.called-banner .ic svg{width:20px;height:20px;stroke:#04241D}
+.called-banner b{display:block;font-size:14.5px}
+.called-banner span{font-size:12.5px;color:var(--muted)}
+.qr-box{background:#EDF5F1;border-radius:16px;padding:16px;width:150px;height:150px;margin:6px auto 14px}
+.qr-box svg{width:100%;height:100%}
+.qr-cap{text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:16px}
+
+.foot-note{text-align:center;color:var(--muted);font-size:12px;line-height:1.6;padding:0 6px}
+.foot-note a{color:var(--mint);text-decoration:none}
+.mini{font-size:11.5px;color:var(--muted);text-align:center;margin-top:2px;opacity:.8}
+.branch-sel{background:rgba(255,255,255,.06);border:1px solid var(--line-2);border-radius:9px;color:var(--ink);font-family:inherit;font-weight:700;font-size:11.5px;padding:5px 8px;outline:none;cursor:pointer;margin-top:6px}
+.branch-sel option{background:#0E2429}
+.svc-badge{width:44px;height:44px;border-radius:12px;background:var(--grad);color:#04241D;display:grid;place-items:center;flex:0 0 44px;font-family:var(--disp);font-weight:700;font-size:20px}
+.tw-lab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:center;margin-bottom:2px}
+.pushrow{display:flex;align-items:center;gap:12px;background:rgba(52,245,197,.06);border:1px solid rgba(52,245,197,.25);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.pushrow-txt{flex:1;min-width:0}
+.pushrow-txt b{display:block;font-size:13.5px;margin-bottom:2px}
+.pushrow-txt span{font-size:12px;color:var(--muted);line-height:1.4;display:block}
+.pushrow.on{background:rgba(52,245,197,.1)}
+.recovery{margin-top:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.rec-lab{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px}
+.rec-row{display:flex;gap:8px}
+.rec-row input{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:10px;padding:9px 11px;color:var(--ink);font-family:var(--mono);font-size:12px;outline:none}
+.rec-row button{white-space:nowrap;background:rgba(52,245,197,.12);border:1px solid rgba(52,245,197,.35);color:var(--mint);font-weight:700;font-size:12.5px;padding:9px 13px;border-radius:10px}
+#netBanner{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(214,85,58,.95);color:#fff;text-align:center;font-weight:700;font-size:13px;padding:9px 12px;transform:translateY(-100%);transition:transform .3s}
+#netBanner.show{transform:translateY(0)}
+.lang-switch{display:inline-flex;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:10px;padding:2px;gap:2px;margin-top:6px}
+.ls-btn{font-family:var(--body);font-weight:700;font-size:11.5px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 9px;border-radius:7px;transition:all .15s;letter-spacing:.03em}
+.ls-btn:hover{color:var(--ink)}
+.ls-btn.on{background:var(--grad);color:#04241D}
+</style>
+</head>
+<body>
+<div id="netBanner" data-nolang></div>
+<div class="shell">
+
+  <div class="head">
+    <div class="brand">
+      <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
+      Navbat<span class="grad-text">siz</span>
+    </div>
+    <div class="place"><b id="plName" data-nolang>Shifo klinikasi</b><span id="plWhere" data-nolang>1-qavat · qabulxona</span><br><select id="branchSel" data-nolang class="branch-sel" title="Muassasa"></select>
+      <div class="lang-switch" data-nolang><button class="ls-btn" data-lang="uz">UZ</button><button class="ls-btn" data-lang="ru">RU</button></div>
+    </div>
+  </div>
+
+  <!-- ====== VIEW 1: navbat olish ====== -->
+  <div class="view on" id="pick">
+    <div class="card">
+      <div class="title">Navbat oling</div>
+      <div class="desc">Jonli navbatda turmang — raqamli navbatingizni telefondan oling.</div>
+
+      <p class="label">Qaysi xizmat kerak?</p>
+      <div class="svc-grid" id="svcGrid" data-nolang></div>
+
+      <p class="label">Ismingiz (ixtiyoriy)</p>
+      <input class="name" id="cName" placeholder="Chaqirilganda ekranda ko‘rinadi">
+
+      <p class="label">Telefon (ixtiyoriy — SMS orqali xabar olish uchun)</p>
+      <input class="name" id="cPhone" type="tel" inputmode="tel" placeholder="+998 90 123 45 67">
+
+      <button class="btn btn-grad" id="takeBtn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Navbat olish
+      </button>
+    </div>
+    <p class="foot-note">Navbatingiz yaqinlashganda ushbu sahifa o‘zi yangilanadi. Sahifani yopmang yoki xatcho‘pga qo‘shing.</p>
+  </div>
+
+  <!-- ====== VIEW 2: mening navbatim ====== -->
+  <div class="view" id="mine">
+    <div class="card" id="mineCard">
+      <div id="calledBanner" style="display:none" class="called-banner">
+        <span class="ic"><svg fill="none" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1"/></svg></span>
+        <span><b>Navbatingiz keldi!</b><span id="calledWin" data-nolang>Kassaga o‘ting</span></span>
+      </div>
+
+      <div class="ticket-top">
+        <span class="status-pill" id="statusPill" data-nolang><i></i>Navbatda</span>
+      </div>
+      <div class="tw-lab" id="twLab" data-nolang>Sizning navbatingiz</div>
+      <div class="big-num" id="myNum" data-nolang>A-000</div>
+      <div class="svc-name" id="mySvc" data-nolang>Terapevt qabuli</div>
+
+      <!-- kutish holati -->
+      <div id="waitingBlock">
+        <div class="divider"></div>
+        <div class="pos-row">
+          <div class="pos-box"><b class="num" id="posAhead" data-nolang>0</b><span>oldingizda</span></div>
+          <div class="pos-sep"></div>
+          <div class="pos-box"><b class="num" id="posWait" data-nolang>0</b><span>~ daqiqa</span></div>
+        </div>
+        <div class="prog"><i id="posProg"></i></div>
+        <div class="now-serving">Hozir xizmatda: <b id="nowServing" data-nolang>—</b></div>
+      </div>
+
+      <!-- chaqirilgan holati -->
+      <div id="calledBlock" style="display:none">
+        <div class="divider"></div>
+        <div class="qr-box" id="calledQr" data-nolang><svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/><rect x="26" y="40" width="10" height="2"/></svg></div>
+        <p class="qr-cap">Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="pushrow" id="pushRow" style="display:none">
+        <div class="pushrow-txt">
+          <b>🔔 Push-xabar</b>
+          <span id="pushHint">Navbatingiz yaqinlashganda telefon o‘zi xabar beradi — sahifani yopsangiz ham.</span>
+        </div>
+        <button class="btn btn-glass" id="pushBtn" type="button" style="width:auto;padding:10px 16px;font-size:13.5px">Yoqish</button>
+      </div>
+
+      <button class="btn btn-ghost" id="cancelBtn">Navbatni bekor qilish</button>
+
+      <div class="recovery" id="recoveryBox" style="display:none">
+        <p class="rec-lab">Boshqa qurilmadan ochish uchun havolani saqlang:</p>
+        <div class="rec-row">
+          <input id="recLink" data-nolang readonly>
+          <button id="recCopy" type="button">Nusxa olish</button>
+        </div>
+      </div>
+    </div>
+    <p class="mini" id="ticketTime" data-nolang></p>
+  </div>
+
+  <!-- ====== VIEW 3: yakunlandi ====== -->
+  <div class="view" id="done">
+    <div class="card" style="text-align:center">
+      <div class="qr-box" style="background:rgba(52,245,197,.1);display:grid;place-items:center;border:1px solid rgba(52,245,197,.3)">
+        <svg width="60" height="60" fill="none" viewBox="0 0 24 24" stroke="#37D9A0" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div class="title">Xizmat yakunlandi</div>
+      <div class="desc" style="margin-bottom:20px">Bizni tanlaganingiz uchun rahmat! Sog‘ bo‘ling.</div>
+      <button class="btn btn-grad" id="againBtn">Yangi navbat olish</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- QR generator (lokal vendor, MIT) — chaqirilgan ekranidagi haqiqiy QR uchun -->
+<script src="qr.js"></script>
+
+<!-- ============ i18n (UZ/RU) — index.html bilan bir xil pattern ============ -->
+<script>
+var RU={
+  "Navbat oling":"Возьмите очередь",
+  "Jonli navbatda turmang — raqamli navbatingizni telefondan oling.":"Не стойте в живой очереди — берите цифровую очередь с телефона.",
+  "Qaysi xizmat kerak?":"Какая услуга нужна?","Ismingiz (ixtiyoriy)":"Ваше имя (необязательно)",
+  "Telefon (ixtiyoriy — SMS orqali xabar olish uchun)":"Телефон (необязательно — для SMS-уведомления)",
+  "Navbat olish":"Взять очередь",
+  "Navbatingiz yaqinlashganda ushbu sahifa o‘zi yangilanadi. Sahifani yopmang yoki xatcho‘pga qo‘shing.":"Когда очередь подойдёт, страница обновится сама. Не закрывайте её или добавьте в закладки.",
+  "Navbatingiz keldi!":"Ваша очередь подошла!",
+  "oldingizda":"перед вами","~ daqiqa":"~ минут","Hozir xizmatda:":"Сейчас обслуживается:",
+  "Kelganingizni tasdiqlash uchun QR-kodni ko‘rsating":"Покажите QR-код для подтверждения прихода",
+  "Navbatni bekor qilish":"Отменить очередь",
+  "🔔 Push-xabar":"🔔 Push-уведомление",
+  "Navbatingiz yaqinlashganda telefon o‘zi xabar beradi — sahifani yopsangiz ham.":"Когда очередь подойдёт, телефон сам уведомит — даже если закроете страницу.",
+  "Yoqish":"Включить",
+  "Boshqa qurilmadan ochish uchun havolani saqlang:":"Сохраните ссылку, чтобы открыть с другого устройства:","Nusxa olish":"Копировать","Nusxa olindi ✓":"Скопировано ✓",
+  "Xizmat yakunlandi":"Обслуживание завершено","Bizni tanlaganingiz uchun rahmat! Sog‘ bo‘ling.":"Спасибо, что выбрали нас! Будьте здоровы.","Yangi navbat olish":"Взять новую очередь"
+};
+var PH={"cName":"Появится на экране при вызове"};
+(function(){
+  var origMap=new Map();
+  function walk(fn){
+    var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(!n.nodeValue||!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+      var p=n.parentNode;if(!p)return NodeFilter.FILTER_REJECT;
+      var t=p.nodeName;if(t==="SCRIPT"||t==="STYLE")return NodeFilter.FILTER_REJECT;
+      if(p.closest&&p.closest("[data-nolang]"))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    var n;while(n=w.nextNode())fn(n);
+  }
+  function applyLang(lang){
+    window.LANG=lang;document.documentElement.lang=lang;
+    walk(function(n){
+      if(!origMap.has(n))origMap.set(n,n.nodeValue);
+      var orig=origMap.get(n),key=orig.trim();
+      if(lang==="ru"&&RU[key]!==undefined)n.nodeValue=orig.replace(key,RU[key]);
+      else n.nodeValue=orig;
+    });
+    Object.keys(PH).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(!e.dataset.phUz)e.dataset.phUz=e.getAttribute("placeholder")||"";e.setAttribute("placeholder",lang==="ru"?PH[id]:e.dataset.phUz);});
+    document.querySelectorAll(".ls-btn").forEach(function(b){b.classList.toggle("on",b.dataset.lang===lang);});
+    try{localStorage.setItem("nlang",lang);}catch(e){}
+    if(window.__onLang)window.__onLang(lang);
+  }
+  document.querySelectorAll("[data-lang]").forEach(function(b){b.addEventListener("click",function(){applyLang(b.dataset.lang);});});
+  var saved="uz";try{if(localStorage.getItem("nlang")==="ru")saved="ru";}catch(e){}
+  applyLang(saved);
+})();
+</script>
+
+<script type="module">
+/* ============================================================
+ *  NAVBATSIZ mijoz — Supabase bilan (2-USTUVORLIK)
+ *  Mijoz login qilmaydi. Talon olgach, o'z holatini access_token
+ *  orqali kuzatadi (getTicketByToken) + navbatdagi o'rnini ommaviy
+ *  navbatdan (loadQueuePublic) hisoblaydi. Anon realtime RLS sabab
+ *  ishlamaydi — shu sabab davriy so'rov (poll) bilan yangilanadi.
+ * ============================================================ */
+import {
+  loadBranches, loadBranch, loadQueuePublic, takeTicket, getTicketByToken,
+  cancelTicket, savePushSubscription, VAPID_PUBLIC_KEY, DEFAULT_BRANCH_SLUG
+} from './navbatsiz-db.js';
+
+var $ = function(id){ return document.getElementById(id); };
+var BKEY='navbatsiz_branch';
+var _q = new URLSearchParams(location.search);
+var slug = (function(){
+  var u=_q.get('b'); if(u) return u;
+  try{ var b=localStorage.getItem(BKEY); if(b) return b; }catch(e){}
+  return DEFAULT_BRANCH_SLUG;
+})();
+// Tiklash havolasi: ?t=<access_token> — boshqa qurilmadan o'z talonini ochish (4.2)
+var recoverToken = _q.get('t') || null;
+
+var branch=null, branchId=null, services=[], svcByCode={}, svcName={};
+var picked=null, pollTimer=null, wasCalled=false;
+
+// ---- til: dinamik matnlar uchun (tr — talon o'zgaruvchisi bilan to'qnashmasin) ----
+var LANG = (window.LANG === 'ru') ? 'ru' : 'uz';
+function tr(uz, ru){ return LANG === 'ru' ? ru : uz; }
+window.__onLang = function(lang){ LANG = (lang === 'ru') ? 'ru' : 'uz'; if(branchId){ setPlace(); poll(); } };
+
+function myKey(){ return 'navbatsiz_my_'+slug; }
+function loadMy(){ try{ return JSON.parse(localStorage.getItem(myKey())); }catch(e){ return null; } }
+function saveMy(t){ try{ t? localStorage.setItem(myKey(), JSON.stringify(t)) : localStorage.removeItem(myKey()); }catch(e){} }
+
+function show(view){ document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')}); $(view).classList.add('on'); }
+function twLabel(){
+  var w=(branch && branch.ticket_word) || 'Navbat';
+  return tr('Sizning '+w.toLowerCase()+'ingiz', (/talon/i.test(w)?'Ваш талон':'Ваша очередь'));
+}
+function friendlyErr(e){
+  var m=(e && e.message)||''+e;
+  if(/rate_limited/.test(m)) return tr('Juda ko‘p urinish — biroz kuting va qayta urining.','Слишком много попыток — подождите и повторите.');
+  if(/service_not_found/.test(m)) return tr('Xizmat topilmadi.','Услуга не найдена.');
+  return tr('Aloqa xatosi. Internetni tekshirib, qayta urining.','Ошибка связи. Проверьте интернет и повторите.');
+}
+
+/* ---------- filial + xizmatlar ---------- */
+async function loadAll(){
+  try{
+    var res=await loadBranch(slug);
+    branch=res.branch; branchId=branch.id; services=res.services||[];
+  }catch(e){
+    // slug noto'g'ri bo'lsa — standartga qaytamiz
+    var res2=await loadBranch(DEFAULT_BRANCH_SLUG);
+    slug=DEFAULT_BRANCH_SLUG; branch=res2.branch; branchId=branch.id; services=res2.services||[];
+  }
+  svcByCode={}; svcName={};
+  services.forEach(function(s){ svcByCode[s.code]=s; svcName[s.code]=s.name; });
+  applyBranding(branch); setPlace(); renderServices();
+  try{ fillBranchSel(await loadBranches()); }catch(e){}
+  // ?t= havolasi bilan kelingan bo'lsa — o'sha talonni qabul qilamiz (tiklash)
+  if(recoverToken && !loadMy()){
+    try{
+      var rt=await getTicketByToken(recoverToken);
+      if(rt && rt.status!=='done' && rt.status!=='no_show' && rt.status!=='cancelled'){
+        saveMy({ id:rt.id, token:recoverToken, tag:rt.tag, svc:rt.svc, t:rt.t });
+      }
+    }catch(e){}
+    recoverToken=null;
+  }
+  // shu filialda oldingi talon bo'lsa — kuzatishni davom ettiramiz
+  if(loadMy()){ startTracking(); } else { stopTracking(); show('pick'); }
+}
+// Kompaniya brendi: logo va rang (bo'lsa). Standart oltin dizayn saqlanadi.
+function applyBranding(b){
+  try{
+    if(b && b.brand_color){ document.documentElement.style.setProperty('--brand', b.brand_color); }
+    else { document.documentElement.style.setProperty('--brand', '#37D9A0'); }
+    var mk=document.querySelector('.head .brand .mk');
+    if(mk){
+      if(b && b.logo_url){ mk.innerHTML='<img src="'+b.logo_url+'" alt="">'; mk.style.background='#fff'; }
+    }
+  }catch(e){}
+}
+function setPlace(){
+  $('plName').textContent=branch.name;
+  $('plWhere').textContent=branch.place||'';
+  $('twLab').textContent=twLabel();
+}
+function renderServices(){
+  var grid=$('svcGrid'); grid.innerHTML='';
+  picked=services.length? services[0].code : null;
+  services.forEach(function(s,i){
+    var b=document.createElement('button');
+    b.className='svc'+(i===0?' on':''); b.type='button'; b.dataset.svc=s.code;
+    b.innerHTML='<span class="svc-badge">'+s.code+'</span><span class="svc-t"><b>'+s.name+'</b><span>'+(s.hint||'')+'</span></span><span class="rad"></span>';
+    b.onclick=function(){ grid.querySelectorAll('.svc').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); picked=s.code; };
+    grid.appendChild(b);
+  });
+}
+function fillBranchSel(branches){
+  var sel=$('branchSel'); sel.innerHTML='';
+  branches.forEach(function(b){ var o=document.createElement('option'); o.value=b.slug; o.textContent=b.name; sel.appendChild(o); });
+  sel.value=slug;
+  sel.onchange=function(){
+    slug=sel.value; try{ localStorage.setItem(BKEY, slug); }catch(e){}
+    loadAll();
+  };
+}
+
+/* ---------- talon olish ---------- */
+$('takeBtn').onclick=async function(){
+  if(!picked){ return; }
+  var svc=svcByCode[picked]; if(!svc) return;
+  var btn=$('takeBtn'); btn.disabled=true;
+  try{
+    var t=await takeTicket(svc.id, $('cName').value.trim(), $('cPhone').value.trim());
+    saveMy({ id:t.id, token:t.token, tag:t.tag, svc:t.svc, t:t.t });
+    wasCalled=false;
+    startTracking();
+    // Ruxsat allaqachon berilgan bo'lsa — jim obuna bo'lamiz (tugma bosmasdan).
+    if(pushSupported() && Notification.permission==='granted'){ subscribePush(t.token); }
+  }catch(e){ toast(friendlyErr(e)); }
+  finally{ btn.disabled=false; }
+};
+
+$('cancelBtn').onclick=async function(){
+  var my=loadMy();
+  if(my){ try{ await cancelTicket(my.id, my.token); }catch(e){} }
+  saveMy(null); stopTracking(); show('pick');
+};
+$('againBtn').onclick=function(){ saveMy(null); stopTracking(); show('pick'); };
+
+/* ---------- kuzatish (poll) ---------- */
+function startTracking(){ stopTracking(); poll(); pollTimer=setInterval(poll, 4000); }
+function stopTracking(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+
+async function poll(){
+  var my=loadMy(); if(!my){ stopTracking(); show('pick'); return; }
+  try{
+    var mt=await getTicketByToken(my.token);
+    var q=await loadQueuePublic(branchId);
+    netOk();
+    renderMine(my, mt, q);
+  }catch(e){ netErr(); /* keyingi urinishda tiklanadi */ }
+}
+function netOk(){ var b=$('netBanner'); if(b) b.classList.remove('show'); }
+function netErr(){ var b=$('netBanner'); if(b){ b.textContent=tr('Aloqa uzildi, qayta urinilmoqda…','Соединение потеряно, повтор…'); b.classList.add('show'); } }
+
+/* ============================================================
+ *  PUSH-XABAR (Web Push) — sahifa yopiq bo'lsa ham xabar keladi
+ * ============================================================ */
+function pushSupported(){
+  return VAPID_PUBLIC_KEY && 'serviceWorker' in navigator &&
+         'PushManager' in window && 'Notification' in window;
+}
+function urlB64ToUint8(base64){
+  var pad='='.repeat((4-base64.length%4)%4);
+  var b=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');
+  var raw=atob(b), arr=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+// Push holatiga qarab "Mening navbatim"dagi qatorni yangilaydi.
+function renderPushRow(){
+  var row=$('pushRow'); if(!row) return;
+  if(!pushSupported()){ row.style.display='none'; return; }
+  row.style.display='flex';
+  var btn=$('pushBtn'), hint=$('pushHint');
+  if(Notification.permission==='granted'){
+    row.classList.add('on'); btn.style.display='none';
+    hint.textContent=tr('Push yoqilgan ✓ — navbatingiz yaqinlashganda xabar keladi.','Push включён ✓ — уведомим, когда очередь подойдёт.');
+  } else if(Notification.permission==='denied'){
+    row.classList.remove('on'); btn.style.display='none';
+    hint.textContent=tr('Push bloklangan. Brauzer sozlamalaridan ruxsat bering.','Push заблокирован. Разрешите в настройках браузера.');
+  } else {
+    row.classList.remove('on'); btn.style.display='';
+  }
+}
+async function subscribePush(token){
+  if(!pushSupported() || !token) return false;
+  try{
+    var reg=await navigator.serviceWorker.ready;
+    var sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({ userVisibleOnly:true,
+        applicationServerKey: urlB64ToUint8(VAPID_PUBLIC_KEY) });
+    }
+    await savePushSubscription(token, sub);
+    renderPushRow();
+    return true;
+  }catch(e){ console.warn('push:', e); renderPushRow(); return false; }
+}
+if($('pushBtn')) $('pushBtn').onclick=async function(){
+  var my=loadMy(); if(!my) return;
+  var perm=await Notification.requestPermission();
+  renderPushRow();
+  if(perm==='granted'){
+    var ok=await subscribePush(my.token);
+    toast(ok? tr('Push yoqildi','Push включён') : tr('Push yoqilmadi','Push не включён'));
+  }
+};
+
+// Chaqirilgan ekranidagi HAQIQIY QR: talon tiklash havolasi — xodim skan
+// qilsa mijozning talonini (holati bilan) ko'radi. Token bo'yicha keshlanadi
+// (har 4s poll'da qayta chizmaslik uchun).
+function renderCalledQr(my){
+  var box=$('calledQr'); if(!box || !window.qrcode || !my || !my.token) return;
+  if(box.dataset.tok===my.token) return;
+  try{
+    var url=location.origin + location.pathname + '?b=' + encodeURIComponent(slug) + '&t=' + encodeURIComponent(my.token);
+    var qr=window.qrcode(0,'M'); qr.addData(url); qr.make();
+    box.innerHTML=qr.createSvgTag({cellSize:4, margin:0});
+    box.dataset.tok=my.token;
+  }catch(e){ /* QR chizilmasa dekorativ SVG qoladi */ }
+}
+
+// Tiklash havolasini ko'rsatish (4.2) — istalgan qurilmadan o'z talonini ochish.
+function setupRecovery(my){
+  var box=$('recoveryBox'); if(!box) return;
+  $('recLink').value = location.origin + location.pathname + '?b=' + encodeURIComponent(slug) + '&t=' + encodeURIComponent(my.token);
+  box.style.display='block';
+}
+(function(){
+  var btn=$('recCopy'); if(!btn) return;
+  btn.onclick=function(){
+    var inp=$('recLink'); inp.select(); inp.setSelectionRange(0,99999);
+    var done=function(){ btn.textContent=tr('Nusxa olindi ✓','Скопировано ✓'); setTimeout(function(){ btn.textContent=tr('Nusxa olish','Копировать'); },1600); };
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(inp.value).then(done, function(){ try{document.execCommand('copy');}catch(e){} done(); }); }
+      else { document.execCommand('copy'); done(); }
+    }catch(e){ done(); }
+  };
+})();
+
+function renderMine(my, mt, queue){
+  // talon topilmasa yoki yakunlangan/no_show — rahmat ekrani
+  if(!mt || mt.status==='done' || mt.status==='no_show'){ show('done'); saveMy(null); stopTracking(); return; }
+  if(mt.status==='cancelled'){ show('pick'); saveMy(null); stopTracking(); return; }
+
+  show('mine');
+  setupRecovery(my); renderPushRow();
+  $('myNum').textContent=mt.tag;
+  $('mySvc').textContent=svcName[mt.svc]||'';
+  $('ticketTime').textContent=tr('Talon olindi: ','Талон получен: ')+new Date(my.t).toLocaleTimeString(LANG==='ru'?'ru':'uz',{hour:'2-digit',minute:'2-digit'});
+
+  var serving=queue.filter(function(t){return t.status==='serving';});
+  var nowTag = serving.length? serving.reduce(function(a,b){return b.t>a.t?b:a;}).tag : '—';
+
+  if(mt.status==='serving'){
+    // CHAQIRILDI
+    $('mineCard').classList.add('called-card');
+    $('calledBanner').style.display='flex';
+    var ww=(branch&&branch.window_word)||'Oyna';
+    $('calledWin').textContent=tr(ww+' '+(mt.win||1)+' ga o‘ting','Пройдите к: '+ww+' '+(mt.win||1));
+    $('waitingBlock').style.display='none';
+    $('calledBlock').style.display='block';
+    renderCalledQr(my);
+    var pill=$('statusPill'); pill.style.background='rgba(52,245,197,.16)'; pill.innerHTML='<i></i>'+tr('Sizni chaqirishmoqda','Вас вызывают');
+    if(!wasCalled){ beep(); vibrate(); wasCalled=true; }
+  } else {
+    // KUTMOQDA
+    wasCalled=false;
+    $('mineCard').classList.remove('called-card');
+    $('calledBanner').style.display='none';
+    $('waitingBlock').style.display='block';
+    $('calledBlock').style.display='none';
+    $('statusPill').innerHTML='<i></i>'+tr('Navbatda','В очереди'); $('statusPill').style.background='rgba(52,245,197,.1)';
+    var waiting=queue.filter(function(t){return t.status==='waiting';});
+    var idx=waiting.findIndex(function(t){return t.id===mt.id;});
+    var ahead=idx<0?0:idx;
+    $('posAhead').textContent=ahead;
+    $('posWait').textContent=Math.max(1, ahead*4);
+    $('nowServing').textContent=nowTag;
+    var total=ahead + (serving.length?1:0) + 1;
+    var pct= total>0 ? Math.round(((total-ahead)/total)*100) : 10;
+    $('posProg').style.width=Math.max(8,Math.min(100,pct))+'%';
+  }
+}
+
+/* ---------- ovoz / tebranish / toast ---------- */
+function beep(){
+  try{ var ac=window.__ac||(window.__ac=new(window.AudioContext||window.webkitAudioContext)());
+    [0,0.18].forEach(function(d){ var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);
+      o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,ac.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(.14,ac.currentTime+d+.02);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d+.16);
+      o.start(ac.currentTime+d);o.stop(ac.currentTime+d+.16); }); }catch(e){}
+}
+function vibrate(){ try{ if(navigator.vibrate) navigator.vibrate([200,80,200]); }catch(e){} }
+var tT;
+function toast(msg){
+  var el=document.getElementById('mToast');
+  if(!el){ el=document.createElement('div'); el.id='mToast';
+    el.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;background:rgba(12,24,38,.96);border:1px solid rgba(214,85,58,.5);border-radius:14px;padding:12px 18px;font-weight:600;font-size:13.5px;color:var(--ink);max-width:90%;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.5)';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg; el.style.opacity='1';
+  clearTimeout(tT); tT=setTimeout(function(){ el.style.opacity='0'; el.style.transition='opacity .4s'; }, 3000);
+}
+
+// Offline'da (sahifa keshdan ochilganda) filial yuklanmasa — banner ko'rsatamiz.
+loadAll().catch(function(e){ console.error(e); netErr(); });
+
+// PWA: service worker (faqat https yoki localhost'da ishlaydi).
+// Telefonga "o'rnatish" imkonini beradi va offline'da sahifa ochiladi.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW:', e); });
+  });
+}
+</script>
+</body>
+</html>
