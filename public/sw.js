@@ -5,7 +5,7 @@
  *  ko'rsatadi). Panel/admin keshlanmaydi — ular doim jonli bo'lsin.
  *  Yangi versiya chiqarganda CACHE nomini oshiring — eski kesh o'chadi.
  * ============================================================ */
-var CACHE = 'navbatsiz-v1';
+var CACHE = 'navbatsiz-v2';
 var ASSETS = [
   'mijoz.html',
   'navbatsiz-db.js',
@@ -52,6 +52,44 @@ self.addEventListener('fetch', function (e) {
       return caches.match(e.request, { ignoreSearch: true }).then(function (hit) {
         return hit || caches.match('mijoz.html');
       });
+    })
+  );
+});
+
+/* ============================================================
+ *  PUSH — "navbatingiz yaqinlashdi" / "chaqirildingiz"
+ *  Payload: { title, body, url, tag }  (send-push Edge Function yuboradi)
+ * ============================================================ */
+self.addEventListener('push', function (e) {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: e.data ? e.data.text() : '' }; }
+  var title = data.title || 'Navbatsiz';
+  var opts = {
+    body: data.body || '',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: data.tag || 'navbatsiz',      // bir xil tag -> eski bildirishnoma almashadi
+    renotify: true,
+    vibrate: [200, 80, 200],
+    data: { url: data.url || 'mijoz.html' }
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  var url = (e.notification.data && e.notification.data.url) || 'mijoz.html';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      // Ochiq mijoz oynasi bo'lsa — o'shani fokuslaymiz va yo'naltiramiz
+      for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if (c.url.indexOf('mijoz.html') !== -1 && 'focus' in c) {
+          if ('navigate' in c) { try { c.navigate(url); } catch (err) {} }
+          return c.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
     })
   );
 });
