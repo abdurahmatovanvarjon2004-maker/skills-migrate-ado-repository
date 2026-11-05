@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navbatsiz — Boshqaruv paneli va tablo</title>
+<meta name="theme-color" content="#08181B">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23F7C948'/%3E%3Cstop offset='.55' stop-color='%23F5A83B'/%3E%3Cstop offset='1' stop-color='%23E58E2F'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M17 16a6 6 0 016-6h18a6 6 0 016 6v32a6 6 0 01-6 6H23a6 6 0 01-6-6V16zm0 10.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zm30 0a5.5 5.5 0 100 11 5.5 5.5 0 000-11z'/%3E%3Cpath stroke='%2304241D' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round' d='M26 23l8.5 9-8.5 9M36 23l8.5 9-8.5 9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08181B;--bg-2:#0B2126;--card:#0E2429;--line:rgba(183,214,203,.12);--line-2:rgba(183,214,203,.20);
+  --ink:#EDF5F1;--muted:#8FA8A0;--mint:#37D9A0;--cyan:#F5B63F;--violet:#177E76;--amber:#F5B63F;--red:#D6553A;
+  --grad:linear-gradient(115deg,#F7C948 0%,#F5A83B 55%,#E58E2F 100%);
+  --brand:#37D9A0;   /* kompaniya brend rangi — applyBranding() o'zgartiradi */
+  --disp:'Unbounded',ui-sans-serif,system-ui,sans-serif;--body:'Golos Text',ui-sans-serif,system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+}
+.tv-brand .mk img,.brand .mk img{width:100%;height:100%;object-fit:cover;border-radius:9px;display:block}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:
+  radial-gradient(700px 460px at 88% -8%, rgba(34,211,238,.10), transparent 60%),
+  radial-gradient(760px 520px at -6% 108%, rgba(139,124,255,.10), transparent 60%),var(--bg);
+  color:var(--ink);min-height:100vh;font-size:15.5px}
+button{font-family:inherit;cursor:pointer}
+::selection{background:rgba(52,245,197,.25)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono);letter-spacing:.01em}
+:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- Top bar ---------- */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:12px 20px;background:rgba(7,13,20,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:18px}
+.brand .mk{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center}
+.brand .mk svg{width:17px;height:17px}
+.brand small{display:block;font-family:var(--body);font-weight:600;font-size:11px;color:var(--muted);letter-spacing:.02em;margin-top:-2px}
+.top-mid{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulse 1.8s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:12px;padding:4px}
+.tab{border:none;background:none;color:var(--muted);font-weight:700;font-size:13.5px;padding:8px 16px;border-radius:9px;transition:.15s;display:flex;align-items:center;gap:7px}
+.tab svg{width:16px;height:16px}
+.tab:hover{color:var(--ink)}
+.tab.on{background:var(--grad);color:#04241D}
+
+.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 60px}
+.view{display:none}.view.on{display:block}
+
+/* ================= ADMIN ================= */
+.admin-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.card{border-radius:20px;background:linear-gradient(var(--card),var(--card)) padding-box,
+  linear-gradient(150deg,rgba(52,245,197,.28),rgba(148,193,255,.07) 45%,rgba(139,124,255,.24)) border-box;
+  border:1px solid transparent;box-shadow:0 22px 54px rgba(0,0,0,.4)}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.card-h h2{font-family:var(--disp);font-size:16px;font-weight:700}
+.card-h .muted{color:var(--muted);font-size:12.5px;font-weight:600}
+
+/* Now serving big */
+.serving{padding:22px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.serving-now{flex:1;min-width:180px}
+.serving-lab{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+.serving-num{font-family:var(--mono);font-weight:600;font-size:clamp(44px,7.5vw,72px);line-height:.95;letter-spacing:.01em}
+.serving-win{font-size:13px;color:var(--muted);margin-top:6px}
+.serving-actions{display:flex;flex-direction:column;gap:10px;min-width:190px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:15px;padding:14px 20px;
+  border-radius:14px;border:1px solid transparent;transition:transform .14s,box-shadow .14s,background .14s;white-space:nowrap}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn svg{width:18px;height:18px}
+.btn-grad{background:var(--grad);color:#04241D;box-shadow:0 10px 30px rgba(34,211,238,.26)}
+.btn-grad:hover{box-shadow:0 14px 40px rgba(52,245,197,.4)}
+.btn-glass{background:rgba(255,255,255,.05);border-color:var(--line-2);color:var(--ink)}
+.btn-glass:hover{background:rgba(255,255,255,.1)}
+.btn-amber{background:rgba(255,201,107,.12);border-color:rgba(255,201,107,.4);color:var(--amber)}
+.btn-amber:hover{background:rgba(255,201,107,.2)}
+.btn-red{background:rgba(255,107,122,.1);border-color:rgba(255,107,122,.35);color:var(--red)}
+.btn-red:hover{background:rgba(255,107,122,.18)}
+.btn-lg{font-size:17px;padding:16px 22px}
+.btn.block{width:100%}
+
+.win-pick{display:flex;gap:8px;align-items:center;padding:0 20px 18px;flex-wrap:wrap}
+.win-pick span{font-size:12.5px;color:var(--muted);font-weight:600}
+.win-chip{border:1px solid var(--line-2);background:rgba(255,255,255,.04);color:var(--muted);font-weight:700;font-size:13px;padding:7px 13px;border-radius:10px;transition:.15s}
+.win-chip.on{background:rgba(52,245,197,.14);border-color:rgba(52,245,197,.4);color:var(--mint)}
+.branch-sel{background:rgba(255,255,255,.06);border:1px solid var(--line-2);border-radius:10px;color:var(--ink);font-family:inherit;font-weight:700;font-size:13px;padding:7px 12px;outline:none;cursor:pointer}
+.branch-sel:focus{border-color:var(--mint)}
+.branch-sel option{background:#0E2429}
+
+/* waiting list */
+.wait-list{padding:8px 12px 14px;max-height:420px;overflow:auto}
+.wrow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:14px;margin:6px 0;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);transition:.15s}
+.wrow:hover{background:rgba(255,255,255,.055)}
+.wrow.next{border-color:rgba(52,245,197,.45);background:rgba(52,245,197,.06)}
+.wtag{width:64px;font-family:var(--mono);font-weight:600;font-size:19px}
+.wmeta{font-size:12.5px;color:var(--muted)}
+.wmeta b{color:var(--ink);font-weight:600;font-size:13.5px;display:block}
+.wact{display:flex;gap:6px}
+.icon-btn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;border:1px solid var(--line-2);background:rgba(255,255,255,.04);transition:.15s}
+.icon-btn:hover{background:rgba(255,255,255,.1)}
+.icon-btn svg{width:17px;height:17px;stroke:var(--muted)}
+.icon-btn.go:hover{border-color:rgba(52,245,197,.5)}.icon-btn.go:hover svg{stroke:var(--mint)}
+.icon-btn.del:hover{border-color:rgba(255,107,122,.5)}.icon-btn.del:hover svg{stroke:var(--red)}
+.empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:14px}
+
+/* stat row */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.stat-c{border:1px solid var(--line);border-radius:16px;padding:16px;background:rgba(255,255,255,.02);text-align:center}
+.stat-c b{display:block;font-family:var(--mono);font-weight:600;font-size:27px}
+.stat-c span{font-size:12px;color:var(--muted)}
+
+/* add form */
+.add-row{display:flex;gap:10px;padding:16px 20px;flex-wrap:wrap;align-items:center}
+.add-row input,.add-row select{background:rgba(255,255,255,.04);border:1px solid var(--line-2);border-radius:12px;
+  padding:12px 14px;color:var(--ink);font-family:inherit;font-size:14px;outline:none}
+.add-row input{flex:1;min-width:150px}
+.add-row input:focus,.add-row select:focus{border-color:var(--mint)}
+select option{background:#0E2429}
+
+.hint{margin-top:18px;font-size:12.5px;color:var(--muted);text-align:center;line-height:1.6}
+.hint b{color:var(--ink)}
+kbd{font-family:var(--disp);background:rgba(255,255,255,.08);border:1px solid var(--line-2);border-radius:6px;padding:1px 7px;font-size:12px}
+
+/* ================= TV TABLO ================= */
+#tv{position:fixed;inset:0;z-index:60;background:
+  radial-gradient(900px 600px at 82% -6%, rgba(34,211,238,.14), transparent 60%),
+  radial-gradient(900px 640px at -6% 110%, rgba(139,124,255,.13), transparent 60%),var(--bg);
+  display:none;flex-direction:column;padding:3.2vh 3.4vw}
+#tv.on{display:flex}
+.tv-top{display:flex;align-items:center;justify-content:space-between}
+.tv-brand{display:flex;align-items:center;gap:14px;font-family:var(--disp);font-weight:700;font-size:2.4vw}
+.tv-brand .mk{width:3.4vw;height:3.4vw;min-width:44px;min-height:44px;border-radius:12px;background:var(--grad);display:grid;place-items:center}
+.tv-brand .mk svg{width:60%;height:60%}
+.tv-clock{font-family:var(--mono);font-weight:600;font-size:2.2vw;color:var(--ink)}
+.tv-place{font-size:1.15vw;color:var(--muted);font-weight:600;margin-top:2px}
+.tv-body{flex:1;display:grid;grid-template-columns:1.25fr .75fr;gap:2.4vw;align-items:stretch;margin-top:2.6vh}
+.tv-now{border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,rgba(52,245,197,.16),rgba(34,211,238,.06) 50%,rgba(139,124,255,.16));
+  border:1px solid rgba(52,245,197,.3);position:relative;overflow:hidden}
+.tv-now .lab{font-size:1.5vw;letter-spacing:.2em;text-transform:uppercase;color:var(--brand);font-weight:700}
+.tv-now .big{font-family:var(--mono);font-weight:600;font-size:16vw;line-height:.9;letter-spacing:0;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:1vh 0}
+.tv-now .win{font-size:2.4vw;font-weight:700;color:var(--ink)}
+.tv-now .win span{color:var(--muted);font-weight:600;font-size:1.5vw}
+.tv-now.flash{animation:flash 1s ease 3}
+@keyframes flash{0%,100%{background:linear-gradient(150deg,rgba(52,245,197,.16),rgba(34,211,238,.06) 50%,rgba(139,124,255,.16))}
+  50%{background:linear-gradient(150deg,rgba(52,245,197,.4),rgba(34,211,238,.2) 50%,rgba(139,124,255,.36))}}
+.tv-next{border-radius:26px;background:rgba(12,24,38,.6);border:1px solid var(--line-2);padding:2vw;display:flex;flex-direction:column}
+.tv-next h3{font-size:1.4vw;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:1.4vh}
+.tv-next-list{display:flex;flex-direction:column;gap:1vh;flex:1}
+.tv-nrow{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid var(--line);
+  border-radius:16px;padding:1.4vh 1.4vw}
+.tv-nrow b{font-family:var(--mono);font-weight:600;font-size:2.6vw}
+.tv-nrow span{font-size:1.4vw;color:var(--muted);font-weight:600}
+.tv-empty{flex:1;display:grid;place-items:center;color:var(--muted);font-size:1.5vw}
+.tv-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2.4vh;color:var(--muted);font-size:1.1vw}
+.tv-foot .qr{display:flex;align-items:center;gap:1vw}
+.tv-foot .qr svg{width:7vw;height:7vw;min-width:84px;min-height:84px;background:#EDF5F1;border-radius:10px;padding:.4vw}
+.tv-exit{position:fixed;top:14px;right:16px;z-index:61;width:44px;height:44px;border-radius:12px;border:1px solid var(--line-2);
+  background:rgba(12,24,38,.7);color:var(--muted);display:none;place-items:center}
+#tv.on ~ .tv-exit{display:grid}
+.tv-exit svg{width:20px;height:20px;stroke:currentColor}
+/* TV to'liq ekran tugmasi (4.1) — faqat ochiq TV rejimida ko'rinadi */
+#fsBtn{position:fixed;bottom:16px;right:16px;z-index:62;display:none;align-items:center;gap:8px;
+  background:rgba(12,24,38,.8);border:1px solid var(--line-2);color:var(--ink);font-weight:700;font-size:13px;
+  padding:10px 16px;border-radius:12px;cursor:pointer}
+#fsBtn svg{width:16px;height:16px;stroke:currentColor}
+
+/* toast */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(140%);z-index:80;
+  background:rgba(12,24,38,.96);border:1px solid rgba(52,245,197,.4);border-radius:14px;padding:13px 20px;
+  font-weight:600;font-size:14px;box-shadow:0 16px 40px rgba(0,0,0,.5);transition:transform .4s cubic-bezier(.2,.9,.3,1.2)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:820px){
+  .admin-grid{grid-template-columns:1fr}
+  .tabs .tab span{display:none}
+  .tv-body{grid-template-columns:1fr;gap:1.6vh}
+  .tv-brand{font-size:5vw}.tv-clock{font-size:5vw}.tv-now .big{font-size:34vw}.tv-now .win{font-size:6vw}
+  .tv-next h3{font-size:3.4vw}.tv-nrow b{font-size:7vw}.tv-nrow span{font-size:3.6vw}
+}
+
+/* ================= LOGIN ================= */
+/* Standart holat — LOGIN OCHIQ, panel YASHIRIN (fail-closed): auth
+   moduli (Supabase JS, tashqi CDN) yuklanmasa ham panel ochilib
+   qolmasligi uchun. JS faqat haqiqiy sessiya tasdiqlangach ochadi. */
+#loginGate{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+.login-label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:0 0 7px}
+.login-input{width:100%;background:rgba(255,255,255,.04);border:1.5px solid var(--line-2);border-radius:12px;
+  padding:13px 14px;color:var(--ink);font-family:inherit;font-size:14.5px;outline:none;margin-bottom:14px}
+.login-input:focus{border-color:var(--mint)}
+.login-err{color:var(--red);font-size:12.5px;min-height:16px;margin-bottom:8px}
+
+/* ================= TIL ALMASHTIRGICH ================= */
+.lang-switch{display:inline-flex;background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:11px;padding:3px;gap:2px}
+.ls-btn{font-family:var(--body);font-weight:700;font-size:12.5px;color:var(--muted);background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;transition:all .15s;letter-spacing:.03em}
+.ls-btn:hover{color:var(--ink)}
+.ls-btn.on{background:var(--grad);color:#04241D}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN GATE ============ -->
+<div id="loginGate">
+  <div class="card" style="width:100%;max-width:380px;padding:28px 26px">
+    <div class="brand" style="margin-bottom:20px;justify-content:center">
+      <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
+      <div>Navbat<span class="grad-text">siz</span><small>Boshqaruv paneli</small></div>
+    </div>
+    <div class="lang-switch" data-nolang style="margin:0 auto 18px;width:max-content">
+      <button class="ls-btn" data-lang="uz">UZ</button>
+      <button class="ls-btn" data-lang="ru">RU</button>
+    </div>
+    <form id="loginForm">
+      <p class="login-label">Email</p>
+      <input class="login-input" id="loginEmail" type="email" required autocomplete="username" placeholder="xodim@muassasa.uz">
+      <p class="login-label">Parol</p>
+      <input class="login-input" id="loginPassword" type="password" required autocomplete="current-password" placeholder="••••••••">
+      <p class="login-err" id="loginError"></p>
+      <button type="submit" class="btn btn-grad block">Kirish</button>
+    </form>
+  </div>
+</div>
+
+<div class="top" id="topBar" style="display:none">
+  <div class="brand">
+    <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
+    <div>Navbat<span class="grad-text">siz</span><small>Boshqaruv paneli</small></div>
+  </div>
+  <div class="top-mid"><span class="dot"></span><select id="branchSel" data-nolang class="branch-sel" title="Soha / muassasa"></select></div>
+  <div class="tabs">
+    <button class="tab on" data-view="admin"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg><span>Panel</span></button>
+    <button class="tab" data-view="stat"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5m0 14h16M8 15v-4m4 4V8m4 7v-6"/></svg><span>Statistika</span></button>
+    <button class="tab" id="tvBtn"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v11H3V5zm6 15h6M12 16v4"/></svg><span>TV-tablo</span></button>
+    <a class="tab" id="settingsLink" href="admin.html" style="display:none;text-decoration:none"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3a2 2 0 013.4 0l.5.9a2 2 0 002.3 1l1-.3a2 2 0 012.4 2.4l-.3 1a2 2 0 001 2.3l.9.5a2 2 0 010 3.4l-.9.5a2 2 0 00-1 2.3l.3 1a2 2 0 01-2.4 2.4l-1-.3a2 2 0 00-2.3 1l-.5.9a2 2 0 01-3.4 0l-.5-.9a2 2 0 00-2.3-1l-1 .3a2 2 0 01-2.4-2.4l.3-1a2 2 0 00-1-2.3l-.9-.5a2 2 0 010-3.4l.9-.5a2 2 0 001-2.3l-.3-1A2 2 0 016.5 5.9l1 .3a2 2 0 002.3-1z"/><circle cx="12" cy="12" r="3"/></svg><span>Sozlamalar</span></a>
+    <button class="btn btn-glass" id="logoutBtn" style="padding:9px 16px;font-size:12.5px" title="Tizimdan chiqish">Chiqish</button>
+  </div>
+  <div class="lang-switch" data-nolang>
+    <button class="ls-btn" data-lang="uz">UZ</button>
+    <button class="ls-btn" data-lang="ru">RU</button>
+  </div>
+</div>
+
+<div class="wrap" id="mainWrap" style="display:none">
+
+  <!-- ============ ADMIN VIEW ============ -->
+  <div class="view on" id="view-admin">
+    <div class="admin-grid">
+      <!-- LEFT: now serving + controls -->
+      <div>
+        <div class="card">
+          <div class="card-h"><h2>Hozir xizmatda</h2><span class="muted" id="servedCount" data-nolang>0 ta qabul qilindi</span></div>
+          <div class="serving">
+            <div class="serving-now">
+              <div class="serving-lab">Chaqirilgan raqam</div>
+              <div class="serving-num grad-text" id="nowNum" data-nolang>—</div>
+              <div class="serving-win" id="nowWin" data-nolang>Navbatni boshlang</div>
+            </div>
+            <div class="serving-actions">
+              <button class="btn btn-grad btn-lg block" id="callNext"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg>Keyingisini chaqirish</button>
+              <button class="btn btn-amber block" id="recall"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 9A8 8 0 006 5.3M4 15a8 8 0 0014 3.7"/></svg>Qayta chaqirish</button>
+              <button class="btn btn-glass block" id="done"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Xizmat tugadi</button>
+              <button class="btn btn-red block" id="noshow"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Kelmadi</button>
+            </div>
+          </div>
+          <div class="win-pick">
+            <span id="winLabel" data-nolang>Oyna:</span>
+            <span id="winChips" data-nolang></span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-h"><h2>Yangi navbat qo‘shish</h2><span class="muted">qo‘lda yoki QR-stend orqali</span></div>
+          <div class="add-row">
+            <select id="addSvc" data-nolang></select>
+            <input id="addName" placeholder="Mijoz ismi (ixtiyoriy)">
+            <button class="btn btn-grad" id="addBtn"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>Talon berish</button>
+          </div>
+        </div>
+
+        <p class="hint">Tezkor tugmalar: <kbd>Bo‘sh joy</kbd> — keyingisini chaqirish · <kbd>N</kbd> — yangi talon · <kbd>F</kbd> — TV-tablo.<br>
+        Panel va tablo bir xil brauzerda <b>real vaqtda sinxron</b> ishlaydi (bitta oynada panel, ikkinchisida tablo ochib sinab ko‘ring).</p>
+      </div>
+
+      <!-- RIGHT: waiting queue -->
+      <div class="card">
+        <div class="card-h"><h2>Kutayotganlar</h2><span class="muted"><b id="waitCount" data-nolang>0</b> kishi navbatda</span></div>
+        <div class="wait-list" id="waitList" data-nolang></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STAT VIEW ============ -->
+  <div class="view" id="view-stat">
+    <div class="stat-row">
+      <div class="stat-c"><b class="grad-text num" id="stTotal" data-nolang>0</b><span>Bugun qabul qilindi</span></div>
+      <div class="stat-c"><b class="grad-text num" id="stWait" data-nolang>0</b><span>Hozir navbatda</span></div>
+      <div class="stat-c"><b class="grad-text num" id="stAvg" data-nolang>0</b><span>O‘rtacha kutish (daq)</span></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Soatlik oqim (bugun)</h2><span class="muted" id="chartMeta" data-nolang></span></div>
+      <div style="padding:22px">
+        <svg viewBox="0 0 700 240" style="width:100%;height:auto" id="chart" data-nolang></svg>
+      </div>
+    </div>
+    <p class="hint">Grafik bugungi haqiqiy kelish oqimini (soat bo‘yicha yangi talonlar) ko‘rsatadi. O‘rtacha kutish — bugun chaqirilgan talonlarning kutish vaqtidan hisoblanadi.</p>
+  </div>
+
+</div>
+
+<!-- ============ TV TABLO (fullscreen overlay) ============ -->
+<div id="tv">
+  <div class="tv-top">
+    <div class="tv-brand">
+      <span class="mk"><svg viewBox="0 0 24 24" fill="none"><path fill="#fff" fill-rule="evenodd" d="M8 3.5h8A2.5 2.5 0 0118.5 6v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 18V6A2.5 2.5 0 018 3.5zM5.5 9.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4zm13 0a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z"/><path stroke="#04241D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M9.3 8.8 12.7 12l-3.4 3.2M13 8.8 16.4 12 13 15.2"/></svg></span>
+      <div>Navbat<span class="grad-text">siz</span><div class="tv-place" id="tvPlace" data-nolang>Shifo klinikasi · 1-qavat</div></div>
+    </div>
+    <div style="text-align:right"><div class="tv-clock" id="tvClock" data-nolang>00:00</div></div>
+  </div>
+  <div class="tv-body">
+    <div class="tv-now" id="tvNow">
+      <div class="lab">Chaqirilmoqda</div>
+      <div class="big" id="tvNum" data-nolang>—</div>
+      <div class="win" id="tvWin" data-nolang><span>kutilmoqda…</span></div>
+    </div>
+    <div class="tv-next">
+      <h3>Keyingi navbat</h3>
+      <div class="tv-next-list" id="tvNext" data-nolang></div>
+    </div>
+  </div>
+  <div class="tv-foot">
+    <div class="qr">
+      <span id="tvQrBox" data-nolang><svg viewBox="0 0 44 44" fill="#0B2126"><rect x="2" y="2" width="12" height="12" rx="2"/><rect x="30" y="2" width="12" height="12" rx="2"/><rect x="2" y="30" width="12" height="12" rx="2"/><rect x="6" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="34" y="6" width="4" height="4" fill="#EDF5F1"/><rect x="6" y="34" width="4" height="4" fill="#EDF5F1"/><rect x="20" y="6" width="4" height="8"/><rect x="20" y="18" width="10" height="4"/><rect x="34" y="20" width="8" height="4"/><rect x="18" y="26" width="4" height="8"/><rect x="26" y="30" width="6" height="6"/><rect x="36" y="30" width="6" height="4"/></svg></span>
+      <span>Navbatga yozilish: <b style="color:var(--ink)" id="tvQrHost" data-nolang>navbatsiz.uz</b></span>
+    </div>
+    <div>Navbatingizni telefondan oling — jonli navbatda turmang</div>
+  </div>
+</div>
+<button class="tv-exit" id="tvExit" title="Chiqish (Esc)"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+<button id="fsBtn"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5a1 1 0 011-1h4M15 4h4a1 1 0 011 1v4M20 15v4a1 1 0 01-1 1h-4M9 20H5a1 1 0 01-1-1v-4"/></svg><span>To‘liq ekran</span></button>
+
+<div id="toast" data-nolang></div>
+
+<!-- QR generator (lokal vendor, MIT) — TV-tablodagi haqiqiy QR uchun -->
+<script src="qr.js"></script>
+
+<!-- ============ i18n (UZ/RU) — index.html bilan bir xil pattern ============ -->
+<script>
+/* Statik matnni RU lug'ati orqali almashtiradi (TreeWalker); dinamik
+   qiymatlar (raqam, tag, DB nomlari) data-nolang bilan chetlab o'tiladi.
+   Dinamik JS matnlari esa modul ichida window.LANG asosida tarjima
+   qilinadi (window.__onLang hook orqali qayta chiziladi). */
+var RU={
+  "Boshqaruv paneli":"Панель управления",
+  "Email":"Эл. почта","Parol":"Пароль","Kirish":"Войти","Chiqish":"Выйти",
+  "Panel":"Панель","Statistika":"Статистика","TV-tablo":"ТВ-табло",
+  "Hozir xizmatda":"Сейчас обслуживается","Chaqirilgan raqam":"Вызванный номер",
+  "Keyingisini chaqirish":"Вызвать следующего","Qayta chaqirish":"Вызвать повторно","Xizmat tugadi":"Обслуживание завершено",
+  "Yangi navbat qo‘shish":"Добавить в очередь","qo‘lda yoki QR-stend orqali":"вручную или через QR-стенд","Talon berish":"Выдать талон",
+  "Kutayotganlar":"Ожидающие","Soatlik oqim (bugun)":"Почасовой поток (сегодня)","Kelmadi":"Не пришёл",
+  "Bugun qabul qilindi":"Принято сегодня","Hozir navbatda":"Сейчас в очереди","O‘rtacha kutish (daq)":"Среднее ожидание (мин)",
+  "Chaqirilmoqda":"Вызывается","Keyingi navbat":"Следующая очередь",
+  "Navbatga yozilish:":"Запись в очередь:","Navbatingizni telefondan oling — jonli navbatda turmang":"Берите очередь с телефона — не стойте в живой очереди",
+  "Grafik bugungi haqiqiy kelish oqimini (soat bo‘yicha yangi talonlar) ko‘rsatadi. O‘rtacha kutish — bugun chaqirilgan talonlarning kutish vaqtidan hisoblanadi.":"График показывает реальный поток за сегодня (новые талоны по часам). Среднее ожидание считается по вызванным сегодня талонам.",
+  "Panel va tablo bir xil brauzerda":"Панель и табло в одном браузере",
+  "real vaqtda sinxron":"синхронны в реальном времени",
+  "ishlaydi (bitta oynada panel, ikkinchisida tablo ochib sinab ko‘ring).":"работают (откройте панель в одном окне, табло — в другом).",
+  "Tezkor tugmalar:":"Горячие клавиши:","Bo‘sh joy":"Пробел",
+  "— keyingisini chaqirish ·":"— вызвать следующего ·","— yangi talon ·":"— новый талон ·","— TV-tablo.":"— ТВ-табло.",
+  "To‘liq ekran":"Полный экран","Sozlamalar":"Настройки"
+};
+var PH={"loginEmail":"sotrudnik@uchrejdenie.uz"};
+(function(){
+  var origMap=new Map();
+  function walk(fn){
+    var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(!n.nodeValue||!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+      var p=n.parentNode;if(!p)return NodeFilter.FILTER_REJECT;
+      var t=p.nodeName;if(t==="SCRIPT"||t==="STYLE")return NodeFilter.FILTER_REJECT;
+      if(p.closest&&p.closest("[data-nolang]"))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    var n;while(n=w.nextNode())fn(n);
+  }
+  function applyLang(lang){
+    window.LANG=lang;document.documentElement.lang=lang;
+    walk(function(n){
+      if(!origMap.has(n))origMap.set(n,n.nodeValue);
+      var orig=origMap.get(n),key=orig.trim();
+      if(lang==="ru"&&RU[key]!==undefined)n.nodeValue=orig.replace(key,RU[key]);
+      else n.nodeValue=orig;
+    });
+    Object.keys(PH).forEach(function(id){var e=document.getElementById(id);if(!e)return;if(!e.dataset.phUz)e.dataset.phUz=e.getAttribute("placeholder")||"";e.setAttribute("placeholder",lang==="ru"?PH[id]:e.dataset.phUz);});
+    document.querySelectorAll(".ls-btn").forEach(function(b){b.classList.toggle("on",b.dataset.lang===lang);});
+    try{localStorage.setItem("nlang",lang);}catch(e){}
+    if(window.__onLang)window.__onLang(lang);
+  }
+  window.__applyLang=applyLang;
+  document.querySelectorAll("[data-lang]").forEach(function(b){b.addEventListener("click",function(){applyLang(b.dataset.lang);});});
+  var saved="uz";try{if(localStorage.getItem("nlang")==="ru")saved="ru";}catch(e){}
+  applyLang(saved);
+})();
+</script>
+
+<script type="module">
+/* ============================================================
+ *  NAVBATSIZ panel — Supabase bilan (2-USTUVORLIK)
+ *  - Login qilgan xodim FAQAT o'z filialini (staff jadvali) boshqaradi.
+ *  - Real-time: xodim subscribe() bilan (RLS ruxsat beradi); ochiq
+ *    TV-tablo (?view=tv, login'siz) esa loadQueuePublic'ni davriy
+ *    so'rov bilan yangilaydi (anon realtime RLS sabab talon o'zgarishini
+ *    ololmaydi).
+ * ============================================================ */
+import {
+  getSession, onAuthChange, signIn, signOut,
+  loadStaffBranch, loadBranch, loadWindows, loadTickets, loadQueuePublic, countDone,
+  callNext as dbCallNext, callTicket as dbCallTicket, finishTicket as dbFinish,
+  cancelTicket as dbCancel, takeTicket as dbTake, noshowTicket as dbNoshow,
+  myContext, loadTodayStats,
+  subscribe, subscribeServices, unsubscribe, DEFAULT_BRANCH_SLUG
+} from './navbatsiz-db.js';
+
+var $ = function(id){ return document.getElementById(id); };
+var params = new URLSearchParams(location.search);
+var isTV = params.get('view') === 'tv';   // ochiq TV-tablo rejimi (login yo'q)
+
+// ---- til: dinamik (JS bilan yasalgan) matnlar uchun ----
+// (tr — "translate"; `t` nomi talon o'zgaruvchisi bilan to'qnashmasin)
+var LANG = (window.LANG === 'ru') ? 'ru' : 'uz';
+function tr(uz, ru){ return LANG === 'ru' ? ru : uz; }
+// Til almashsa (i18n classic-script chaqiradi) — dinamik matnlarni qayta chizamiz.
+window.__onLang = function(lang){ LANG = (lang === 'ru') ? 'ru' : 'uz'; if(branchId) render(); };
+
+// ---- holat ----
+var branch=null, services=[], windows=[1,2,3], svcById={}, svcByCode={}, svcName={};
+var branchId=null, WW='Oyna';
+var state={ list:[], served:0, win:1, avgWaitToday:null };
+var channel=null, svcChannel=null, pollTimer=null, inited=false;
+
+// ---- toast ----
+var tT;
+function toast(msg){ var el=$('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(tT); tT=setTimeout(function(){el.classList.remove('show')},2600); }
+
+// ---- ulanish holati (dot) ----
+function setLive(ok){
+  var d=document.querySelector('.top .dot'); if(!d) return;
+  d.style.background = ok? 'var(--mint)' : 'var(--red)';
+  d.style.boxShadow  = ok? '0 0 10px var(--mint)' : '0 0 10px var(--red)';
+  d.title = ok? tr('Aloqa faol','Соединение активно') : tr('Aloqa uzildi — qayta urinilmoqda…','Соединение потеряно — повтор…');
+}
+
+/* ============================================================
+ *  AUTH GATE
+ * ============================================================ */
+window.__panelAuthed = false;
+function showLogin(){
+  $('loginGate').style.display='flex';
+  $('topBar').style.display='none';
+  $('mainWrap').style.display='none';
+  $('tv').classList.remove('on');
+}
+function showPanel(){
+  $('loginGate').style.display='none';
+  $('topBar').style.display='';
+  $('mainWrap').style.display='';
+}
+
+async function applyAuthState(session){
+  if(isTV) return;                       // TV rejimi auth'dan mustaqil
+  window.__panelAuthed = !!session;
+  if(session){
+    showPanel();
+    if(!inited){ inited=true; await initPanel(); }
+  } else {
+    if(inited){ teardown(); inited=false; }
+    showLogin();
+  }
+}
+
+// login form
+$('loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var email=$('loginEmail').value.trim(), password=$('loginPassword').value;
+  var errEl=$('loginError'), btn=e.target.querySelector('button[type=submit]');
+  errEl.textContent=''; btn.disabled=true;
+  signIn(email,password)
+    .catch(function(){ errEl.textContent=tr('Email yoki parol noto‘g‘ri, yoki aloqa xatosi.','Неверный e-mail или пароль, либо ошибка соединения.'); })
+    .then(function(){ btn.disabled=false; });
+});
+var logoutBtn=$('logoutBtn'); if(logoutBtn) logoutBtn.addEventListener('click', function(){ signOut(); });
+
+/* ============================================================
+ *  INIT (xodim paneli)  /  INIT-TV (ochiq tablo)
+ * ============================================================ */
+function applyBranchMeta(b, svcs, wins){
+  branch=b; branchId=b.id; services=svcs||[]; WW=b.window_word||'Oyna';
+  svcById={}; svcByCode={}; svcName={};
+  services.forEach(function(s){ svcById[s.id]=s; svcByCode[s.code]=s; svcName[s.code]=s.name; });
+  windows = (wins && wins.length)? wins.map(function(w){return w.no;}) : [1,2,3];
+  state.win = windows[0] || 1;
+  applyBranding(b);
+  // filial nomi top-bar select'ida (endi almashtirmaydi — faqat ko'rsatadi)
+  var sel=$('branchSel');
+  if(sel){ sel.innerHTML='<option>'+b.name+'</option>'; sel.value=b.name; sel.disabled=true; }
+  $('tvPlace').textContent=b.name+(b.place? ' · '+b.place : '');
+  renderTvQr(b);
+}
+
+// TV-tablodagi HAQIQIY QR: shu filialning mijoz sahifasi havolasi.
+// Skan qilgan odam to'g'ridan-to'g'ri navbat olish sahifasiga tushadi.
+function renderTvQr(b){
+  var box=$('tvQrBox'); if(!box || !window.qrcode || !b || !b.slug) return;
+  try{
+    var url=location.origin + location.pathname.replace(/panel\.html$/,'mijoz.html') + '?b=' + encodeURIComponent(b.slug);
+    var qr=window.qrcode(0,'M'); qr.addData(url); qr.make();
+    box.innerHTML=qr.createSvgTag({cellSize:4, margin:2});
+    var host=$('tvQrHost'); if(host) host.textContent=location.host || 'navbatsiz.uz';
+  }catch(e){ /* QR chizilmasa dekorativ SVG qoladi */ }
+}
+
+async function initPanel(){
+  try{
+    var res=await loadStaffBranch();
+    if(!res){ toast(tr('Sizga filial biriktirilmagan. Administrator bilan bog‘laning.','Вам не назначен филиал. Обратитесь к администратору.')); return; }
+    applyBranchMeta(res.branch, res.services, await loadWindows(res.branch.id));
+    renderWins(); renderSvcOptions();
+    // Sozlamalar havolasi faqat filial admini / platforma admini uchun
+    try{ var c=await myContext(); if(c && (c.is_admin || c.role==='admin')){ var sl=$('settingsLink'); if(sl) sl.style.display=''; } }catch(e){}
+    await refresh();
+    // real-time (xodim uchun RLS ruxsat beradi)
+    channel=subscribe(branchId, function(){ refresh(); }, function(status){
+      setLive(status==='SUBSCRIBED');
+    });
+    // xizmatlar admin.html'da o'zgarsa — metani qayta yuklaymiz
+    svcChannel=subscribeServices(branchId, function(){ reloadMeta(); });
+  }catch(e){ console.error(e); toast(tr('Yuklashda xatolik','Ошибка загрузки')+': '+ (e && e.message || e)); }
+}
+
+// Filial metasi (xizmatlar/oynalar/so'zlar) o'zgarganda qayta yuklash.
+async function reloadMeta(){
+  try{
+    var res=await loadStaffBranch(); if(!res) return;
+    applyBranchMeta(res.branch, res.services, await loadWindows(res.branch.id));
+    renderWins(); renderSvcOptions(); render();
+  }catch(e){ console.error(e); }
+}
+
+async function initTV(){
+  showPanelHiddenForTV();
+  try{
+    var slug = params.get('b') || DEFAULT_BRANCH_SLUG;
+    var res=await loadBranch(slug);
+    applyBranchMeta(res.branch, res.services, []);
+    await refresh();
+    // anon realtime RLS sabab ishlamaydi — davriy so'rov bilan yangilaymiz
+    pollTimer=setInterval(refresh, 4000);
+  }catch(e){ console.error(e); }
+}
+// Kompaniya brendi: TV brand mark logotipi va urg'u rangi (bo'lsa).
+function applyBranding(b){
+  try{
+    document.documentElement.style.setProperty('--brand', (b && b.brand_color) ? b.brand_color : '#37D9A0');
+    var mk=document.querySelector('.tv-brand .mk');
+    if(mk && b && b.logo_url){ mk.innerHTML='<img src="'+b.logo_url+'" alt="">'; mk.style.background='#fff'; }
+  }catch(e){}
+}
+function showPanelHiddenForTV(){
+  $('loginGate').style.display='none';
+  $('topBar').style.display='none';
+  $('mainWrap').style.display='none';
+  var ex=document.querySelector('.tv-exit'); if(ex) ex.style.display='none';
+  $('tv').classList.add('on');
+  setupFullscreen();
+}
+// 4.1 — TV-tablo to'liq ekran: brauzer Fullscreen API foydalanuvchi
+// harakatini talab qiladi, shu sabab tugma + birinchi bosishda avtomatik.
+function goFullscreen(){
+  var el=document.documentElement;
+  var req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(req){ try{ req.call(el); }catch(e){} }
+}
+function setupFullscreen(){
+  var btn=$('fsBtn'); if(!btn) return;
+  btn.style.display='flex';
+  btn.onclick=goFullscreen;
+  // birinchi foydalanuvchi harakatida (bosish/klavisha) avtomatik urinib ko'ramiz
+  var once=function(){ goFullscreen(); window.removeEventListener('pointerdown',once); window.removeEventListener('keydown',once); };
+  window.addEventListener('pointerdown',once); window.addEventListener('keydown',once);
+  // to'liq ekran holatini kuzatib, tugmani yashiramiz/ko'rsatamiz
+  document.addEventListener('fullscreenchange',function(){ btn.style.display=document.fullscreenElement? 'none':'flex'; });
+}
+
+function teardown(){
+  if(channel){ unsubscribe(channel); channel=null; }
+  if(svcChannel){ unsubscribe(svcChannel); svcChannel=null; }
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  branchId=null; state.list=[]; state.served=0; state.avgWaitToday=null;
+}
+
+/* ============================================================
+ *  MA'LUMOTNI YANGILASH
+ * ============================================================ */
+async function refresh(){
+  if(!branchId) return;
+  try{
+    if(isTV){
+      state.list=await loadQueuePublic(branchId);
+    } else {
+      state.list=await loadTickets(branchId);
+      state.served=await countDone(branchId);
+    }
+    setLive(true); render();
+  }catch(e){ console.error(e); setLive(false); toast(tr('Aloqa uzildi, qayta urinilmoqda…','Соединение потеряно, повтор…')); }
+}
+
+// ---- holatdan hosilalar ----
+function waitingList(){ return state.list.filter(function(t){return t.status==='waiting';}); }
+function servingList(){ return state.list.filter(function(t){return t.status==='serving';}); }
+function nowTicket(){
+  var serving=servingList();
+  if(!isTV){ return serving.find(function(t){return t.win===state.win;}) || null; }
+  if(!serving.length) return null;
+  // TV rejimi: eng so'nggi chaqirilganini (created_at bo'yicha) ko'rsatamiz
+  return serving.reduce(function(a,b){ return b.t>a.t? b : a; });
+}
+function label(t){ return t.name || svcName[t.svc] || t.svc || t.tag; }
+
+/* ============================================================
+ *  RENDER
+ * ============================================================ */
+function render(){
+  var now=nowTicket(), waiting=waitingList();
+  // now serving (admin)
+  if($('nowNum')){
+    $('nowNum').textContent = now? now.tag : '—';
+    $('nowWin').textContent = now? (WW+' '+(now.win||state.win)+(now.name?' · '+now.name:'')) : tr('Navbatni boshlang','Начните очередь');
+    $('servedCount').textContent = state.served+' '+tr('ta qabul qilindi','принято');
+  }
+  // waiting list
+  var wl=$('waitList');
+  if(wl){
+    wl.innerHTML='';
+    if(!waiting.length){ wl.innerHTML='<div class="empty">'+tr('Navbat bo‘sh — yangi talon qo‘shing yoki QR-stend orqali mijozlar yoziladi.','Очередь пуста — добавьте талон или клиенты запишутся через QR-стенд.')+'</div>'; }
+    waiting.forEach(function(t,i){
+      var row=document.createElement('div'); row.className='wrow'+(i===0?' next':'');
+      var mins=Math.max(0,Math.round((Date.now()-t.t)/60000));
+      row.innerHTML='<div class="wtag grad-text">'+t.tag+'</div>'+
+        '<div class="wmeta"><b>'+label(t)+'</b>'+(i===0?tr('keyingi · ','следующий · '):'')+mins+' '+tr('daq kutmoqda','мин ожидает')+'</div>'+
+        '<div class="wact"><button class="icon-btn go" title="Shu raqamni chaqirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 6l6 6-6 6M5 12h14"/></svg></button>'+
+        '<button class="icon-btn del" title="O‘chirish"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
+      row.querySelector('.go').onclick=function(){ callSpecific(t.id); };
+      row.querySelector('.del').onclick=function(){ removeTicket(t.id); };
+      wl.appendChild(row);
+    });
+    $('waitCount').textContent=waiting.length;
+    $('stTotal').textContent=state.served;
+    $('stWait').textContent=waiting.length;
+    $('stAvg').textContent = state.avgWaitToday!=null ? state.avgWaitToday : avgWait(waiting);
+  }
+  renderTV(now, waiting);
+}
+function avgWait(waiting){
+  if(!waiting.length) return 0;
+  var s=0; waiting.forEach(function(t){ s+=(Date.now()-t.t)/60000; });
+  return Math.round(s/waiting.length);
+}
+
+function renderTV(now, waiting){
+  now = now || nowTicket(); waiting = waiting || waitingList();
+  if($('tvNum')){
+    $('tvNum').textContent = now? now.tag : '—';
+    $('tvWin').innerHTML = now? (WW+' '+(now.win||1)) : '<span>'+tr('kutilmoqda…','ожидание…')+'</span>';
+  }
+  var nx=$('tvNext'); if(!nx) return;
+  nx.innerHTML='';
+  var up=waiting.slice(0,4);
+  if(!up.length){ nx.innerHTML='<div class="tv-empty">'+tr('Navbatda hech kim yo‘q','В очереди никого нет')+'</div>'; }
+  up.forEach(function(t){
+    var d=document.createElement('div'); d.className='tv-nrow';
+    d.innerHTML='<b class="grad-text">'+t.tag+'</b><span>'+label(t)+'</span>';
+    nx.appendChild(d);
+  });
+}
+function flashTV(){
+  var el=$('tvNow'); if(!el) return;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  try{
+    var ac=window.__ac||(window.__ac=new (window.AudioContext||window.webkitAudioContext)());
+    var o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=880;
+    g.gain.setValueAtTime(.001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.15,ac.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.5);
+    o.start();o.stop(ac.currentTime+.5);
+  }catch(e){}
+}
+
+/* ============================================================
+ *  AMALLAR (xodim) — barchasi DB RPC orqali
+ * ============================================================ */
+function requireAuth(){ if(!window.__panelAuthed){ toast(tr('Avval tizimga kiring','Сначала войдите в систему')); return false; } return true; }
+function friendlyErr(e){
+  var m=(e && e.message)||''+e;
+  if(/rate_limited/.test(m)) return tr('Juda ko‘p urinish — biroz kuting.','Слишком много попыток — подождите.');
+  if(/not_authorized/.test(m)) return tr('Ruxsat yo‘q.','Нет доступа.');
+  if(/service_not_found/.test(m)) return tr('Xizmat topilmadi.','Услуга не найдена.');
+  return tr('Amal bajarilmadi. Aloqani tekshiring.','Действие не выполнено. Проверьте соединение.');
+}
+function calledMsg(t){ return tr('Chaqirildi: ','Вызван: ')+t.tag+' → '+WW+' '+state.win; }
+
+async function doCallNext(){
+  if(!requireAuth() || !branchId) return;
+  if(!waitingList().length){ toast(tr('Navbat bo‘sh','Очередь пуста')); return; }
+  try{
+    var t=await dbCallNext(branchId, state.win);
+    await refresh();
+    if(t){ flashTV(); toast(calledMsg(t)); }
+    else toast(tr('Navbat bo‘sh','Очередь пуста'));
+  }catch(e){ toast(friendlyErr(e)); }
+}
+function recall(){
+  if(!requireAuth()) return;
+  var now=nowTicket();
+  if(now){ flashTV(); toast(tr('Qayta chaqirildi: ','Повторно вызван: ')+now.tag); }
+}
+async function doDone(){
+  if(!requireAuth()) return;
+  var now=nowTicket(); if(!now){ toast(tr('Hozir xizmatda hech kim yo‘q','Сейчас никого не обслуживают')); return; }
+  try{ await dbFinish(now.id); await refresh(); toast(tr('Xizmat yakunlandi','Обслуживание завершено')); }
+  catch(e){ toast(friendlyErr(e)); }
+}
+// Chaqirilgan mijoz kelmasa — talonni "no_show" deb belgilash
+// (statistikada "kelmagan" sifatida qoladi, "yakunlangan" emas).
+async function doNoshow(){
+  if(!requireAuth()) return;
+  var now=nowTicket(); if(!now){ toast(tr('Hozir xizmatda hech kim yo‘q','Сейчас никого не обслуживают')); return; }
+  try{ await dbNoshow(now.id); await refresh(); toast(tr('Kelmadi deb belgilandi: ','Отмечен как не пришедший: ')+now.tag); }
+  catch(e){ toast(friendlyErr(e)); }
+}
+async function callSpecific(ticketId){
+  if(!requireAuth()) return;
+  try{
+    var t=await dbCallTicket(ticketId, state.win);
+    await refresh();
+    if(t){ flashTV(); toast(calledMsg(t)); }
+  }catch(e){ toast(friendlyErr(e)); }
+}
+async function removeTicket(ticketId){
+  if(!requireAuth()) return;
+  try{ await dbCancel(ticketId); await refresh(); }
+  catch(e){ toast(friendlyErr(e)); }
+}
+async function addTicket(){
+  if(!requireAuth()) return;
+  var code=$('addSvc').value, svc=svcByCode[code];
+  if(!svc){ toast(tr('Xizmat tanlanmagan','Услуга не выбрана')); return; }
+  try{
+    var t=await dbTake(svc.id, $('addName').value.trim());
+    $('addName').value='';
+    await refresh();
+    if(t) toast(tr('Talon berildi: ','Талон выдан: ')+t.tag);
+  }catch(e){ toast(friendlyErr(e)); }
+}
+
+/* ============================================================
+ *  UI: oynalar, xizmatlar, tablar, klaviatura, soat, grafik
+ * ============================================================ */
+function renderWins(){
+  var box=$('winChips'); if(!box) return; box.innerHTML='';
+  windows.forEach(function(n){
+    var b=document.createElement('button');
+    b.className='win-chip'+(n===state.win?' on':''); b.textContent=WW+' '+n;
+    b.onclick=function(){
+      document.querySelectorAll('.win-chip').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on'); state.win=n; render();
+    };
+    box.appendChild(b);
+  });
+  $('winLabel').textContent=WW+':';
+}
+function renderSvcOptions(){
+  var sel=$('addSvc'); if(!sel) return; sel.innerHTML='';
+  services.forEach(function(s){ var o=document.createElement('option'); o.value=s.code; o.textContent=s.code+' · '+s.name; sel.appendChild(o); });
+}
+
+// TV ochish/yopish
+function openTV(){ $('tv').classList.add('on'); renderTV(); }
+function closeTV(){ if(isTV) return; $('tv').classList.remove('on'); }
+if($('tvBtn')) $('tvBtn').onclick=openTV;
+if($('tvExit')) $('tvExit').onclick=closeTV;
+
+// soat
+function tick(){ var d=new Date(); $('tvClock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+tick(); setInterval(tick,10000);
+setInterval(function(){ if(branchId) render(); }, 30000); // kutish daqiqalarini yangilab turadi
+
+// tugmalar
+if($('callNext')) $('callNext').onclick=doCallNext;
+if($('recall'))   $('recall').onclick=recall;
+if($('done'))     $('done').onclick=doDone;
+if($('noshow'))   $('noshow').onclick=doNoshow;
+if($('addBtn'))   $('addBtn').onclick=addTicket;
+if($('addName'))  $('addName').addEventListener('keydown',function(e){ if(e.key==='Enter'){ addTicket(); } });
+
+// tablar
+document.querySelectorAll('.tab[data-view]').forEach(function(t){
+  t.onclick=function(){
+    document.querySelectorAll('.tab[data-view]').forEach(function(x){x.classList.remove('on')}); t.classList.add('on');
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on')});
+    $('view-'+t.dataset.view).classList.add('on');
+    if(t.dataset.view==='stat') drawChart();
+  };
+});
+
+// klaviatura
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.code==='Space'){ e.preventDefault(); doCallNext(); }
+  else if(e.key==='n'||e.key==='N'){ addTicket(); }
+  else if(e.key==='f'||e.key==='F'){ $('tv').classList.contains('on')?closeTV():openTV(); }
+  else if(e.key==='Escape'){ closeTV(); }
+});
+
+// Real statistika: bugungi talonlardan soatlik kelish oqimi + o'rtacha
+// kutish (called_at - created_at). Statistika ko'rinishi ochilganda yuklanadi.
+async function drawChart(){
+  var svg=$('chart'); if(!svg || !branchId) return;
+  var rows=[];
+  try{ rows=await loadTodayStats(branchId); }catch(e){ console.error(e); }
+
+  // soatlik histogramma (yangi talonlar)
+  var byHour={};
+  rows.forEach(function(r){ var h=new Date(r.created_at).getHours(); byHour[h]=(byHour[h]||0)+1; });
+  var hours=Object.keys(byHour).map(Number);
+  // ko'rish oynasi: kamida 09–18, ma'lumot bo'lsa kengayadi
+  var from=Math.min(9, hours.length?Math.min.apply(null,hours):9);
+  var to=Math.max(18, hours.length?Math.max.apply(null,hours):18);
+  var data=[], labels=[];
+  for(var h=from; h<=to; h++){ data.push(byHour[h]||0); labels.push(String(h).padStart(2,'0')); }
+  var max=Math.max(5, Math.max.apply(null, data));
+
+  // o'rtacha kutish: bugun chaqirilganlar bo'yicha (daqiqa)
+  var waits=rows.filter(function(r){return r.called_at;})
+                .map(function(r){return (new Date(r.called_at)-new Date(r.created_at))/60000;});
+  state.avgWaitToday = waits.length? Math.round(waits.reduce(function(a,b){return a+b;},0)/waits.length) : null;
+  if(state.avgWaitToday!=null && $('stAvg')) $('stAvg').textContent=state.avgWaitToday;
+  var meta=$('chartMeta');
+  if(meta) meta.textContent = rows.length? (rows.length+' '+tr('ta talon bugun','талонов сегодня')) : '';
+
+  var W=700,H=240,pad=30;
+  var g='<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#37D9A0"/><stop offset="1" stop-color="#F5B63F" stop-opacity=".5"/></linearGradient></defs>';
+  if(!rows.length){
+    g+='<text x="'+(W/2)+'" y="'+(H/2)+'" fill="#8FA8A0" font-size="15" text-anchor="middle">'+tr('Bugun hali talon yo‘q — grafik birinchi talondan keyin chiziladi','Сегодня талонов ещё нет — график появится после первого талона')+'</text>';
+    svg.innerHTML=g; return;
+  }
+  var bw=(W-pad*2)/data.length;
+  for(var y=0;y<=3;y++){ var yy=pad+(H-pad*2)*(y/3); g+='<line x1="'+pad+'" y1="'+yy+'" x2="'+(W-pad)+'" y2="'+yy+'" stroke="rgba(148,193,255,.12)"/>'; g+='<text x="6" y="'+(yy+4)+'" fill="#8FA8A0" font-size="11">'+Math.round(max-max*(y/3))+'</text>'; }
+  data.forEach(function(v,i){
+    var bh=(H-pad*2)*(v/max), x=pad+i*bw+bw*0.22, w=Math.min(bw*0.56, 46), yy=H-pad-bh;
+    if(v>0) g+='<rect x="'+x+'" y="'+yy+'" width="'+w+'" height="'+bh+'" rx="5" fill="url(#bg)"/>';
+    g+='<text x="'+(x+w/2)+'" y="'+(H-pad+16)+'" fill="#8FA8A0" font-size="11" text-anchor="middle">'+labels[i]+'</text>';
+  });
+  svg.innerHTML=g;
+}
+
+/* ============================================================
+ *  BOSHLASH
+ * ============================================================ */
+if(isTV){
+  initTV();
+} else {
+  getSession().then(applyAuthState).catch(function(){ applyAuthState(null); });
+  onAuthChange(applyAuthState);
+}
+</script>
+</body>
+</html>
